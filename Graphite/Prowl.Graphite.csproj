@@ -10,7 +10,7 @@
 
     <PropertyGroup>
         <PackageId>Prowl.Graphite</PackageId>
-        <Version>0.1.1</Version>
+        <Version>0.0.1</Version>
 
         <Authors>Prowl Group</Authors>
         <Owners>Prowl Group</Owners>
@@ -26,4 +26,9 @@
 
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Prowl.Slang" Version="0.1.1" />
+      <PackageReference Include="Prowl.Vector" Version="0.5.3" />
+    </ItemGroup>
 </Project>

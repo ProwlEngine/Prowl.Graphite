@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackageId>Prowl.Graphite</PackageId>
+        <Version>0.1.1</Version>
+
+        <Authors>Prowl Group</Authors>
+        <Owners>Prowl Group</Owners>
+        <Copyright>Copyright (c) Prowl Group 2025.</Copyright>
+
+        <Description>A cross-platform graphics abstraction API for .NET.</Description>
+        <RepositoryUrl>https://github.com/ProwlEngine/Prowl.Slang</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
+        <PackageTags>graphics api DirectX Vulkan OpenGL Metal direct-x direct3D11 direct3D12</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    </PropertyGroup>
+</Project>

@@ -7,7 +7,7 @@ namespace Prowl.Graphite;
 public abstract class Shader
 {
     /// <summary>
-    /// Map for uniform names to
+    /// List of uniform names available to this shader.
     /// </summary>
     public List<string> Properties;
 }

@@ -1,28 +1,45 @@
 using System;
+
+using Silk.NET.SDL;
+
 using Prowl.Graphite;
+using Prowl.Graphite.OpenGL;
 using Prowl.Vector;
 
 
-public class Program
+public unsafe class Program
 {
+    Sdl sdl;
+    Window* window;
+    SdlContext context;
+
     const string ShaderSource = """
 
 
 """;
 
-    public GraphicsDevice device;
+    GraphicsDevice device;
 
-    public Shader shader;
-    public Mesh mesh;
-    public Material material;
-    public CommandBuffer buffer;
-    public RenderTexture colorTarget;
-    public RenderTexture depthTarget;
+    Shader shader;
+    Mesh mesh;
+    Material material;
+    CommandBuffer buffer;
+    RenderTexture target;
+
+
+    public void SetupWindow()
+    {
+        sdl = Sdl.GetApi();
+        window = sdl.CreateWindow("My Window", 0, 0, 500, 500, (uint)WindowFlags.Opengl);
+        context = new SdlContext(sdl, window);
+    }
 
 
     public void Main()
     {
-        device = new GraphicsDevice();
+        SetupWindow();
+
+        device = new GLGraphicsDevice(context);
 
         if (!ShaderCompiler.CompileShader(ShaderSource, out shader))
             return;
@@ -33,26 +50,32 @@ public class Program
         mesh.SetIndices(new List<int>());
 
         material = new Material(shader);
-        colorTarget = new RenderTexture(1960, 1080, RenderTextureFormat.RGBA32);
-        depthTarget = new RenderTexture(1960, 1080, RenderTextureFormat.R8);
+        target = new RenderTexture(1960, 1080, RenderTextureFormat.RGBA32);
 
         buffer = new CommandBuffer("Main Buffer");
 
         while (true)
         {
+            Event sdlEvent = default;
+            while (sdl.PollEvent(ref sdlEvent) != 0)
+            {
+                if (sdlEvent.Type == (uint)EventType.Quit)
+                    return;
+            }
+
             buffer.Clear();
 
-            buffer.SetRenderTarget(colorTarget, depthTarget);
-            buffer.ClearRenderTarget(Color.Black, 1.0);
+            buffer.SetRenderTarget(target);
+            buffer.ClearRenderTarget(Vector4.zero, 1.0, 0);
 
-            material.SetVector("Color", new Vector4(0.5, 0.5, 1.0, 1.0));
+            material.SetVector("Color", new Vector3(0.5, 0.5, 1.0));
             material.SetMatrix("MVP", Matrix4x4.Identity);
 
             buffer.SetMaterial(material, 0);
 
             buffer.DrawMesh(mesh, material);
 
-            device.SumbitCommands(buffer);
+            device.SubmitCommands(buffer);
 
             device.SwapBuffers();
         }

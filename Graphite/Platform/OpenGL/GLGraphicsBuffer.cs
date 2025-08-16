@@ -1,0 +1,1 @@
+namespace Prowl.Graphite.OpenGL;

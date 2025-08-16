@@ -11,12 +11,15 @@ public abstract class CommandBuffer : IDisposable
     /// <summary>
     /// CommandBuffer name. Can be used to identify a buffer in thrown exceptions or in debug messages.
     /// </summary>
-    public string Name { get; set; }
+    public required string Name { get; init; }
 
 
-    public CommandBuffer Create()
+    public static CommandBuffer Create(string name = "")
     {
-        return new OpenGL.GLCommandBuffer();
+        return GraphicsDevice.Backend switch
+        {
+            GraphicsBackend.OpenGL => new OpenGL.GLCommandBuffer() { Name = name }
+        };
     }
 
 
@@ -32,9 +35,7 @@ public abstract class CommandBuffer : IDisposable
 
     public abstract void ClearScissorRect();
 
-    public abstract void SetRenderTarget(RenderTexture target);
-
-    public abstract void SetRenderTarget(RenderBuffer[] colorBuffers, RenderBuffer depthBuffer);
+    public abstract void SetRenderTarget(RenderTexture? target);
 
     /// <summary>
     /// Sets the material and pass to be used in all subsequent draw calls until <see cref="SetMaterial"/> is called again.

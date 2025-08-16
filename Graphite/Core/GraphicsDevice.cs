@@ -8,6 +8,7 @@ namespace Prowl.Graphite;
 
 public abstract class GraphicsDevice
 {
+    public static GraphicsBackend Backend => Instance.GetBackend();
     public static GraphicsDevice Instance { get; private set; }
 
     internal GraphicsDevice()
@@ -18,9 +19,12 @@ public abstract class GraphicsDevice
         Instance = this;
     }
 
-    public abstract bool IsIdle { get; }
+    public abstract void WaitForIdle();
 
     public abstract void SubmitCommands(CommandBuffer buffer);
 
     public abstract void SwapBuffers();
+
+
+    protected abstract GraphicsBackend GetBackend();
 }

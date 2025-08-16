@@ -12,7 +12,7 @@ namespace Prowl.Graphite.OpenGL;
 
 public partial class GLGraphicsDevice : GraphicsDevice
 {
-    private static GLCommandProcessor s_glCommandProcessor;
+    private static GLDispatcher s_glCommandProcessor;
 
     public GLGraphicsDevice(IGLContext source) : base()
     {
@@ -26,10 +26,22 @@ public partial class GLGraphicsDevice : GraphicsDevice
     }
 
 
+    public override void WaitForIdle()
+    {
+        s_glCommandProcessor.WaitForIdle();
+    }
+
+
     public override void SwapBuffers()
     {
         s_glCommandProcessor.SwapBuffers();
     }
 
     protected override GraphicsBackend GetBackend() => GraphicsBackend.OpenGL;
+
+
+    internal void FlushDisposables()
+    {
+
+    }
 }

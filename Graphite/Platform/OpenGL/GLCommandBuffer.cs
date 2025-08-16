@@ -7,39 +7,23 @@ using Prowl.Vector;
 namespace Prowl.Graphite.OpenGL;
 
 
-internal enum GLCommandType
-{
-
-}
-
-
-internal struct GLCommand
-{
-    public GLCommandType Opcode;
-    public object Item0;
-    public object Item1;
-}
-
-
 public class GLCommandBuffer : CommandBuffer
 {
-    internal Queue<GLCommand> _glCommands = [];
-
-
     public override void Dispose()
     {
-        _glCommands = null;
+
     }
 
 
     public override void Clear()
     {
-        _glCommands.Clear();
+
     }
 
 
     public override void ClearRenderTarget(Vector4 clearColor, double clearDepth, byte clearStencil)
     {
+
     }
 
 
@@ -48,19 +32,24 @@ public class GLCommandBuffer : CommandBuffer
 
     }
 
+
     public override void SetScissorRect(Rect rect)
     {
 
     }
+
 
     public override void ClearScissorRect()
     {
 
     }
 
+
     public override void SetRenderTarget(RenderTexture? target = null)
     {
+
     }
+
 
     /// <summary>
     /// Sets the material and pass to be used in all subsequent draw calls until <see cref="SetMaterial"/> is called again.
@@ -84,6 +73,7 @@ public class GLCommandBuffer : CommandBuffer
     {
 
     }
+
 
     public override void DrawPrimitivesIndexed(MeshTopology topology, GraphicsBuffer indexBuffer, int indexCount, int startIndex = 0, int instanceCount = 1)
     {

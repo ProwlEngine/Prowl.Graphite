@@ -33,8 +33,8 @@ public unsafe class Program
         sdl = Sdl.GetApi();
         window = sdl.CreateWindow("My Window", 0, 0, 500, 500, (uint)WindowFlags.Opengl);
         context = new SdlContext(sdl, window);
+
         context.Create();
-        context.MakeCurrent();
     }
 
 
@@ -57,7 +57,9 @@ public unsafe class Program
 
         buffer = CommandBuffer.Create("Main Buffer");
 
-        while (true)
+        bool isRunning = true;
+
+        while (isRunning)
         {
             Console.WriteLine("Polling");
 
@@ -65,7 +67,11 @@ public unsafe class Program
             while (sdl.PollEvent(ref sdlEvent) != 0)
             {
                 if (sdlEvent.Type == (uint)EventType.Quit)
-                    return;
+                {
+                    sdl.Quit();
+                    isRunning = false;
+                    break;
+                }
             }
 
             buffer.Clear();
@@ -82,12 +88,11 @@ public unsafe class Program
 
             device.SubmitCommands(buffer);
 
-            while (!device.IsIdle)
-                System.Threading.Thread.Sleep(1);
-
-            Console.WriteLine(device.IsIdle);
+            device.WaitForIdle();
 
             device.SwapBuffers();
         }
+
+        Console.WriteLine("Quit Game");
     }
 }

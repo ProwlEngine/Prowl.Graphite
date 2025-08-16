@@ -78,62 +78,32 @@ internal unsafe struct GLWorkItem
 }
 
 
-internal class GLCommandProcessor
+internal class GLDispatcher
 {
-    private Queue<ManualResetEvent> _resetPool;
-
-    private ManualResetEvent RentResetEvent()
-    {
-        lock (_resetPool)
-        {
-            if (_resetPool.TryDequeue(out ManualResetEvent? ev))
-            {
-                return ev;
-            }
-        }
-        return new ManualResetEvent(false);
-    }
-
-
-    private void ReturnResetEvent(ManualResetEvent mre)
-    {
-        if (_resetPool.Count > Environment.ProcessorCount)
-        {
-            mre.Dispose();
-            return;
-        }
-
-        lock (_resetPool)
-        {
-            _resetPool.Enqueue(mre);
-            mre.Reset();
-        }
-    }
-
-
-    private struct CommandContext
-    {
-        public GLRenderTexture? ActiveTarget;
-    }
-
-
     private IGLContext _context;
     private GL _gl;
     private Thread _glExecutionThread;
     private BlockingCollection<GLWorkItem> _processingQueue = new(new ConcurrentQueue<GLWorkItem>());
 
 
-    public GLCommandProcessor(GL gl, IGLContext context)
+    public GLDispatcher(GL gl, IGLContext context)
     {
         _context = context;
         _gl = gl;
-        _glExecutionThread = new Thread(ProcessCommands);
+        _glExecutionThread = new Thread(ProcessCommands)
+        {
+            IsBackground = true,
+            Name = "OpenGL Worker"
+        };
+
         _glExecutionThread.Start();
     }
 
 
     private void ProcessCommands()
     {
+        _context.MakeCurrent();
+
         foreach (GLWorkItem workItem in _processingQueue.GetConsumingEnumerable())
         {
             ProcessItem(workItem);
@@ -143,13 +113,20 @@ internal class GLCommandProcessor
 
     public void WaitForIdle()
     {
-        ManualResetEvent mre = RentResetEvent();
-        GLWorkItem workItem = new(mre, isFullFlush: false);
+        ManualResetEvent mre = ResetEventPool.Rent();
+        GLWorkItem workItem = new(mre, false);
 
         _processingQueue.Add(workItem);
         mre.WaitOne();
 
-        ReturnResetEvent(mre);
+        ResetEventPool.Return(mre);
+    }
+
+
+    public void SwapBuffers()
+    {
+        GLWorkItem workItem = new(WorkItemType.SwapBuffers);
+        _processingQueue.Add(workItem);
     }
 
 
@@ -173,22 +150,17 @@ internal class GLCommandProcessor
                     }
 
                     break;
+
+                case WorkItemType.SwapBuffers:
+                    _context.SwapBuffers();
+                    Unsafe.As<GLGraphicsDevice>(GraphicsDevice.Instance).FlushDisposables();
+
+                    break;
             }
         }
         finally
         {
             eventAfterExecute?.Set();
         }
-    }
-
-
-    private Color Vec4ToColor(Vector4 vector)
-    {
-        return Color.FromArgb(
-            (int)(MathD.Clamp01(vector.x) * 255),
-            (int)(MathD.Clamp01(vector.y) * 255),
-            (int)(MathD.Clamp01(vector.z) * 255),
-            (int)(MathD.Clamp01(vector.w) * 255)
-        );
     }
 }

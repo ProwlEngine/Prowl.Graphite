@@ -30,5 +30,12 @@
     <ItemGroup>
       <PackageReference Include="Prowl.Slang" Version="0.1.1" />
       <PackageReference Include="Prowl.Vector" Version="0.5.3" />
+
+      <PackageReference Include="Silk.NET.Direct3D11" Version="2.22.0" />
+      <PackageReference Include="Silk.NET.Direct3D12" Version="2.22.0" />
+      <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
+      <PackageReference Include="Silk.NET.OpenGLES" Version="2.22.0" />
+      <PackageReference Include="Silk.NET.Vulkan" Version="2.22.0" />
+      <PackageReference Include="Silk.NET.WebGPU" Version="2.22.0" />
     </ItemGroup>
 </Project>

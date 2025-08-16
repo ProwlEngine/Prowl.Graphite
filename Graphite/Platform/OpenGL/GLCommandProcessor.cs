@@ -1,3 +1,6 @@
+using System;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -5,16 +8,77 @@ using System.Threading;
 using System.Drawing;
 
 using Silk.NET.OpenGL;
+using Silk.NET.Core.Contexts;
+
 using Prowl.Vector;
-using System;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
+
 
 namespace Prowl.Graphite.OpenGL;
 
 
 
-public partial class GLGraphicsDevice
+internal enum WorkItemType
+{
+    ExecuteBuffer,
+    GenericAction,
+    TerminateAction,
+    SwapBuffers,
+    WaitForIdle,
+}
+
+
+internal unsafe struct GLWorkItem
+{
+    public readonly WorkItemType Type;
+    public readonly object? Object0;
+    public readonly object? Object1;
+    public readonly uint UInt0;
+    public readonly uint UInt1;
+
+
+    public GLWorkItem(GLCommandBuffer commandBuffer, object? fence)
+    {
+        Type = WorkItemType.ExecuteBuffer;
+        Object0 = commandBuffer;
+        Object1 = fence;
+
+        UInt0 = 0;
+        UInt1 = 0;
+    }
+
+    public GLWorkItem(Action a, ManualResetEvent? mre, bool isTermination)
+    {
+        Type = isTermination ? WorkItemType.TerminateAction : WorkItemType.GenericAction;
+        Object0 = a;
+        Object1 = mre;
+
+        UInt0 = 0;
+        UInt1 = 0;
+    }
+
+    public GLWorkItem(ManualResetEvent mre, bool isFullFlush)
+    {
+        Type = WorkItemType.WaitForIdle;
+        Object0 = mre;
+        Object1 = null;
+
+        UInt0 = isFullFlush ? 1u : 0u;
+        UInt1 = 0;
+    }
+
+    public GLWorkItem(WorkItemType type)
+    {
+        Type = type;
+        Object0 = null;
+        Object1 = null;
+
+        UInt0 = 0;
+        UInt1 = 0;
+    }
+}
+
+
+internal class GLCommandProcessor
 {
     private Queue<ManualResetEvent> _resetPool;
 
@@ -53,12 +117,16 @@ public partial class GLGraphicsDevice
     }
 
 
+    private IGLContext _context;
+    private GL _gl;
     private Thread _glExecutionThread;
     private BlockingCollection<GLWorkItem> _processingQueue = new(new ConcurrentQueue<GLWorkItem>());
 
 
-    private void InitializeGLThread()
+    public GLCommandProcessor(GL gl, IGLContext context)
     {
+        _context = context;
+        _gl = gl;
         _glExecutionThread = new Thread(ProcessCommands);
         _glExecutionThread.Start();
     }
@@ -73,7 +141,7 @@ public partial class GLGraphicsDevice
     }
 
 
-    public override void WaitForIdle()
+    public void WaitForIdle()
     {
         ManualResetEvent mre = RentResetEvent();
         GLWorkItem workItem = new(mre, isFullFlush: false);
@@ -100,8 +168,8 @@ public partial class GLGraphicsDevice
                     bool isFullFlush = workItem.UInt0 != 0;
                     if (isFullFlush)
                     {
-                        s_gl.Flush();
-                        s_gl.Finish();
+                        _gl.Flush();
+                        _gl.Finish();
                     }
 
                     break;

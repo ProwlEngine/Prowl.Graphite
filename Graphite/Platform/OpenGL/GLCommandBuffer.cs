@@ -7,33 +7,70 @@ using Prowl.Vector;
 namespace Prowl.Graphite.OpenGL;
 
 
+internal enum GLCommandType
+{
+
+}
+
+
+internal struct GLCommand
+{
+    public GLCommandType Opcode;
+    public object Item0;
+    public object Item1;
+}
+
+
 public class GLCommandBuffer : CommandBuffer
 {
-    internal Queue<GLCommand> _glCommands;
+    internal Queue<GLCommand> _glCommands = [];
 
 
-    public abstract void Dispose();
+    public override void Dispose()
+    {
+        _glCommands = null;
+    }
 
-    public abstract void Clear();
 
-    public abstract void ClearRenderTarget(Vector4 clearColor, double clearDepth, byte clearStencil);
+    public override void Clear()
+    {
+        _glCommands.Clear();
+    }
 
-    public abstract void DrawMesh(Mesh mesh, Material material);
 
-    public abstract void SetScissorRect(Rect rect);
+    public override void ClearRenderTarget(Vector4 clearColor, double clearDepth, byte clearStencil)
+    {
+    }
 
-    public abstract void ClearScissorRect();
 
-    public abstract void SetRenderTarget(RenderTexture target);
+    public override void DrawMesh(Mesh mesh, Material material)
+    {
 
-    public abstract void SetRenderTarget(RenderBuffer[] colorBuffers, RenderBuffer depthBuffer);
+    }
+
+    public override void SetScissorRect(Rect rect)
+    {
+
+    }
+
+    public override void ClearScissorRect()
+    {
+
+    }
+
+    public override void SetRenderTarget(RenderTexture? target = null)
+    {
+    }
 
     /// <summary>
     /// Sets the material and pass to be used in all subsequent draw calls until <see cref="SetMaterial"/> is called again.
     /// </summary>
     /// <param name="material"></param>
     /// <param name="pass"></param>
-    public abstract void SetMaterial(Material material, int pass);
+    public override void SetMaterial(Material material, int pass)
+    {
+
+    }
 
     /// <summary>
     /// Makes a primitive draw call for a
@@ -43,7 +80,13 @@ public class GLCommandBuffer : CommandBuffer
     /// <param name="instanceCount"></param>
     /// <param name="vertexStart"></param>
     /// <param name="instanceStart"></param>
-    public abstract void DrawPrimitives(MeshTopology topology, uint vertexCount, uint instanceCount = 1, uint vertexStart = 0, uint instanceStart = 0);
+    public override void DrawPrimitives(MeshTopology topology, uint vertexCount, uint instanceCount = 1, uint vertexStart = 0, uint instanceStart = 0)
+    {
 
-    public abstract void DrawPrimitivesIndexed(MeshTopology topology, GraphicsBuffer indexBuffer, int indexCount, int startIndex = 0, int instanceCount = 1);
+    }
+
+    public override void DrawPrimitivesIndexed(MeshTopology topology, GraphicsBuffer indexBuffer, int indexCount, int startIndex = 0, int instanceCount = 1)
+    {
+
+    }
 }

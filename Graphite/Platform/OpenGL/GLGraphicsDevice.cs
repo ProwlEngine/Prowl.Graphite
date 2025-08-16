@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 using Prowl.Vector;
 
@@ -9,7 +10,7 @@ using Silk.NET.OpenGL;
 namespace Prowl.Graphite.OpenGL;
 
 
-public class GLGraphicsDevice : GraphicsDevice
+public partial class GLGraphicsDevice : GraphicsDevice
 {
     private static IGLContext s_context;
     private static GL s_gl;
@@ -18,12 +19,14 @@ public class GLGraphicsDevice : GraphicsDevice
     {
         s_context = source;
         s_gl = GL.GetApi(source);
+
+        InitializeGLThread();
     }
 
 
     public override void SubmitCommands(CommandBuffer buffer)
     {
-        _processingQueue.Add(((GLCommandBuffer)buffer)._glCommands);
+        // _processingQueue.Add(new(((GLCommandBuffer)buffer)._glCommands));
     }
 
 
@@ -31,4 +34,6 @@ public class GLGraphicsDevice : GraphicsDevice
     {
         s_context.SwapBuffers();
     }
+
+    protected override GraphicsBackend GetBackend() => GraphicsBackend.OpenGL;
 }

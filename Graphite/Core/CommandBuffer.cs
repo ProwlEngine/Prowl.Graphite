@@ -14,11 +14,17 @@ public abstract class CommandBuffer : IDisposable
     public string Name { get; set; }
 
 
+    public CommandBuffer Create()
+    {
+        return new OpenGL.GLCommandBuffer();
+    }
+
+
     public abstract void Dispose();
 
     public abstract void Clear();
 
-    public abstract void ClearRenderTarget(Vector4 clearColor, float clearDepth, byte clearStencil);
+    public abstract void ClearRenderTarget(Vector4 clearColor, double clearDepth, byte clearStencil);
 
     public abstract void DrawMesh(Mesh mesh, Material material);
 
@@ -26,7 +32,9 @@ public abstract class CommandBuffer : IDisposable
 
     public abstract void ClearScissorRect();
 
-    public abstract void SetRenderTarget(RenderTexture colorTarget, RenderTexture depthTarget, int mipLevel = 0, int depthSlice = 0);
+    public abstract void SetRenderTarget(RenderTexture target);
+
+    public abstract void SetRenderTarget(RenderBuffer[] colorBuffers, RenderBuffer depthBuffer);
 
     /// <summary>
     /// Sets the material and pass to be used in all subsequent draw calls until <see cref="SetMaterial"/> is called again.

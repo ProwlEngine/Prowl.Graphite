@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using Prowl.Vector;
 
@@ -9,6 +11,9 @@ namespace Prowl.Graphite.OpenGL;
 
 public class GLCommandBuffer : CommandBuffer
 {
+    internal Queue<GLCommand> _glCommands = [];
+
+
     public override void Dispose()
     {
 
@@ -17,13 +22,13 @@ public class GLCommandBuffer : CommandBuffer
 
     public override void Clear()
     {
-
+        _glCommands.Clear();
     }
 
 
-    public override void ClearRenderTarget(Vector4 clearColor, double clearDepth, byte clearStencil)
+    public override void ClearRenderTarget(Byte4 clearColor, double clearDepth, byte clearStencil)
     {
-
+        _glCommands.Enqueue(new ClearRenderTarget() { ClearColor = clearColor, ClearDepth = clearDepth, ClearStencil = clearStencil });
     }
 
 
@@ -33,21 +38,27 @@ public class GLCommandBuffer : CommandBuffer
     }
 
 
-    public override void SetScissorRect(Rect rect)
+    public override void SetScissorRect(Int4 rect, int viewport = 0)
     {
+        _glCommands.Enqueue(new SetScissorRect() { Enable = true, ScissorRect = rect, ViewportIndex = (uint)viewport });
+    }
 
+
+    public override void SetScissorRects(Int4[] rects, int viewportStartIndex = 0)
+    {
+        _glCommands.Enqueue(new SetScissorRect() { Enable = true, ScissorRects = rects, ViewportIndex = (uint)viewportStartIndex });
     }
 
 
     public override void ClearScissorRect()
     {
-
+        _glCommands.Enqueue(new SetScissorRect() { Enable = false });
     }
 
 
     public override void SetRenderTarget(RenderTexture? target = null)
     {
-
+        _glCommands.Enqueue(new SetRenderTarget() { Target = Unsafe.As<GLRenderTexture?>(target) });
     }
 
 

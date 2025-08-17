@@ -1,6 +1,7 @@
 using System;
 
 using Prowl.Vector;
+using Prowl.Vector.Geometry;
 
 
 namespace Prowl.Graphite;
@@ -27,11 +28,13 @@ public abstract class CommandBuffer : IDisposable
 
     public abstract void Clear();
 
-    public abstract void ClearRenderTarget(Vector4 clearColor, double clearDepth, byte clearStencil);
+    public abstract void ClearRenderTarget(Byte4 clearColor, double clearDepth, byte clearStencil);
 
     public abstract void DrawMesh(Mesh mesh, Material material);
 
-    public abstract void SetScissorRect(Rect rect);
+    public abstract void SetScissorRect(Int4 rect, int viewport = 0);
+
+    public abstract void SetScissorRects(Int4[] rect, int viewport = 0);
 
     public abstract void ClearScissorRect();
 

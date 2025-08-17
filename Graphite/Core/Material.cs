@@ -31,8 +31,8 @@ public abstract class Material
 
     public void SetFloat(string name, float value) => SetProperty(name, value);
     public void SetInt(string name, int value) => SetProperty(name, value);
-    public void SetVector(string name, Vector3 value) => SetProperty(name, value);
-    public void SetMatrix(string name, Matrix4x4 value) => SetProperty(name, value);
+    public void SetVector(string name, Float3 value) => SetProperty(name, value);
+    public void SetMatrix(string name, Float4x4 value) => SetProperty(name, value);
     public void SetTexture(string name, Texture value) => SetProperty(name, value);
     public void SetBuffer(string name, GraphicsBuffer value) => SetProperty(name, value);
 }

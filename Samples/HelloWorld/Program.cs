@@ -6,10 +6,12 @@ using Prowl.Graphite;
 using Prowl.Graphite.OpenGL;
 using Prowl.Vector;
 using System.Collections.Generic;
+using Silk.NET.OpenGL;
 
 
 public unsafe class Program
 {
+    static GL gl;
     static Sdl sdl;
     static Window* window;
     static SdlContext context;
@@ -21,7 +23,7 @@ public unsafe class Program
 
     static GraphicsDevice device;
 
-    static Shader shader;
+    static Prowl.Graphite.Shader shader;
     static Mesh mesh;
     static Material material;
     static CommandBuffer buffer;
@@ -33,8 +35,6 @@ public unsafe class Program
         sdl = Sdl.GetApi();
         window = sdl.CreateWindow("My Window", 0, 0, 500, 500, (uint)WindowFlags.Opengl);
         context = new SdlContext(sdl, window);
-
-        context.Create();
     }
 
 
@@ -42,14 +42,18 @@ public unsafe class Program
     {
         SetupWindow();
 
-        device = new GLGraphicsDevice(context);
+        device = new GLGraphicsDevice(() =>
+        {
+            context.Create();
+            return context;
+        });
 
         if (!ShaderCompiler.CompileShader(ShaderSource, out shader))
             Console.WriteLine("Failed to compile shader");
 
         mesh = Mesh.Create();
 
-        mesh.SetVertices(new List<Vector3>());
+        mesh.SetVertices(new List<Float3>());
         mesh.SetIndices(new List<int>());
 
         material = Material.Create(shader);
@@ -58,7 +62,6 @@ public unsafe class Program
         buffer = CommandBuffer.Create("Main Buffer");
 
         bool isRunning = true;
-
         while (isRunning)
         {
             Console.WriteLine("Polling");
@@ -76,8 +79,8 @@ public unsafe class Program
 
             buffer.Clear();
 
-            buffer.SetRenderTarget(target);
-            buffer.ClearRenderTarget(Vector4.one, 1.0, 0);
+            buffer.SetRenderTarget(null);
+            buffer.ClearRenderTarget((Byte4)(Colors.PowderBlue * 255), 1.0, 0);
 
             // material.SetVector("Color", new Vector3(0.5, 0.5, 1.0));
             // material.SetMatrix("MVP", Matrix4x4.Identity);
@@ -88,9 +91,8 @@ public unsafe class Program
 
             device.SubmitCommands(buffer);
 
-            device.WaitForIdle();
-
             device.SwapBuffers();
+
         }
 
         Console.WriteLine("Quit Game");

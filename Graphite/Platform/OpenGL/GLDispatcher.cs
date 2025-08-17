@@ -36,7 +36,7 @@ internal unsafe struct GLWorkItem
     public readonly uint UInt1;
 
 
-    public GLWorkItem(GLCommandBuffer commandBuffer, object? fence)
+    public GLWorkItem(Queue<GLCommand> commandBuffer, object? fence)
     {
         Type = WorkItemType.ExecuteBuffer;
         Object0 = commandBuffer;
@@ -80,16 +80,23 @@ internal unsafe struct GLWorkItem
 
 internal class GLDispatcher
 {
+    private Func<IGLContext> _contextProvider;
     private IGLContext _context;
     private GL _gl;
     private Thread _glExecutionThread;
     private BlockingCollection<GLWorkItem> _processingQueue = new(new ConcurrentQueue<GLWorkItem>());
 
+    internal IGLContext Context => _context;
+    internal GL Gl => _gl;
+    internal GLGraphicsDevice _device;
 
-    public GLDispatcher(GL gl, IGLContext context)
+
+
+    public GLDispatcher(GLGraphicsDevice device, Func<IGLContext> contextProvider)
     {
-        _context = context;
-        _gl = gl;
+        _device = device;
+        _contextProvider = contextProvider;
+
         _glExecutionThread = new Thread(ProcessCommands)
         {
             IsBackground = true,
@@ -102,12 +109,22 @@ internal class GLDispatcher
 
     private void ProcessCommands()
     {
+        _context = _contextProvider.Invoke();
+        _gl = GL.GetApi(_context);
+
         _context.MakeCurrent();
 
         foreach (GLWorkItem workItem in _processingQueue.GetConsumingEnumerable())
         {
             ProcessItem(workItem);
         }
+    }
+
+
+    public void SubmitBuffer(GLCommandBuffer buffer, object? fence = null)
+    {
+        GLWorkItem workItem = new(new Queue<GLCommand>(buffer._glCommands), fence);
+        _processingQueue.Add(workItem);
     }
 
 
@@ -142,6 +159,7 @@ internal class GLDispatcher
                     eventAfterExecute = Unsafe.As<ManualResetEvent>(workItem.Object0);
                     Debug.Assert(eventAfterExecute != null);
 
+                    _device.FlushDisposables();
                     bool isFullFlush = workItem.UInt0 != 0;
                     if (isFullFlush)
                     {
@@ -153,7 +171,16 @@ internal class GLDispatcher
 
                 case WorkItemType.SwapBuffers:
                     _context.SwapBuffers();
-                    Unsafe.As<GLGraphicsDevice>(GraphicsDevice.Instance).FlushDisposables();
+                    _device.FlushDisposables();
+
+                    break;
+
+                case WorkItemType.ExecuteBuffer:
+                    Queue<GLCommand>? commandQueue = Unsafe.As<Queue<GLCommand>>(workItem.Object0);
+                    Debug.Assert(commandQueue != null);
+
+                    while (commandQueue.TryDequeue(out GLCommand? command))
+                        command.Execute(this);
 
                     break;
             }

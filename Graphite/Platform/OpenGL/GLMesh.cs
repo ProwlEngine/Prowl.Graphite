@@ -12,7 +12,7 @@ public class GLMesh : Mesh
 
     }
 
-    public override void SetVertices(List<Vector3> vertices)
+    public override void SetVertices(List<Float3> vertices)
     {
 
     }

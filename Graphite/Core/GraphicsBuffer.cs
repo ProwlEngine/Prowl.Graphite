@@ -22,5 +22,9 @@ public abstract class GraphicsBuffer : IDisposable
 
     public int Stride { get; private set; }
 
+    public int Size => Count * Stride;
+
+    public BufferUsage Usage { get; private set; }
+
     public abstract void Dispose();
 }

@@ -14,15 +14,15 @@ public partial class GLGraphicsDevice : GraphicsDevice
 {
     private static GLDispatcher s_glCommandProcessor;
 
-    public GLGraphicsDevice(IGLContext source) : base()
+    public GLGraphicsDevice(Func<IGLContext> contextProvider) : base()
     {
-        s_glCommandProcessor = new(GL.GetApi(source), source);
+        s_glCommandProcessor = new(this, contextProvider);
     }
 
 
     public override void SubmitCommands(CommandBuffer buffer)
     {
-        // _processingQueue.Add(new(((GLCommandBuffer)buffer)._glCommands));
+        s_glCommandProcessor.SubmitBuffer((GLCommandBuffer)buffer);
     }
 
 

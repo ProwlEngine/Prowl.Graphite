@@ -48,16 +48,4 @@ public abstract class CommandBuffer : IDisposable
     /// <param name="material"></param>
     /// <param name="pass"></param>
     public abstract void SetMaterial(Material material, int pass);
-
-    /// <summary>
-    /// Makes a primitive draw call for a
-    /// </summary>
-    /// <param name="topology"></param>
-    /// <param name="vertexCount"></param>
-    /// <param name="instanceCount"></param>
-    /// <param name="vertexStart"></param>
-    /// <param name="instanceStart"></param>
-    public abstract void DrawPrimitives(MeshTopology topology, uint vertexCount, uint instanceCount = 1, uint vertexStart = 0, uint instanceStart = 0);
-
-    public abstract void DrawPrimitivesIndexed(MeshTopology topology, GraphicsBuffer indexBuffer, int indexCount, int startIndex = 0, int instanceCount = 1);
 }

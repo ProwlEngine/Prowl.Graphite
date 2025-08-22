@@ -71,23 +71,4 @@ public class GLCommandBuffer : CommandBuffer
     {
 
     }
-
-    /// <summary>
-    /// Makes a primitive draw call for a
-    /// </summary>
-    /// <param name="topology"></param>
-    /// <param name="vertexCount"></param>
-    /// <param name="instanceCount"></param>
-    /// <param name="vertexStart"></param>
-    /// <param name="instanceStart"></param>
-    public override void DrawPrimitives(MeshTopology topology, uint vertexCount, uint instanceCount = 1, uint vertexStart = 0, uint instanceStart = 0)
-    {
-
-    }
-
-
-    public override void DrawPrimitivesIndexed(MeshTopology topology, GraphicsBuffer indexBuffer, int indexCount, int startIndex = 0, int instanceCount = 1)
-    {
-
-    }
 }

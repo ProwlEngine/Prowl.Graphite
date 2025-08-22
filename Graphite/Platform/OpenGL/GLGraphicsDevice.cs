@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 using Prowl.Vector;
 
@@ -12,36 +13,53 @@ namespace Prowl.Graphite.OpenGL;
 
 public partial class GLGraphicsDevice : GraphicsDevice
 {
-    private static GLDispatcher s_glCommandProcessor;
+    private GLDispatcher _dispatcher;
+    private List<GLDeferredResource> _disposeQueue;
+
+    internal GLDispatcher Dispatcher => _dispatcher;
+
+    internal bool ARBBufferStorage;
+    internal bool ARBDirectStateAccess;
+
 
     public GLGraphicsDevice(Func<IGLContext> contextProvider) : base()
     {
-        s_glCommandProcessor = new(this, contextProvider);
+        _dispatcher = new(contextProvider, this);
+        _disposeQueue = [];
     }
 
 
     public override void SubmitCommands(CommandBuffer buffer)
     {
-        s_glCommandProcessor.SubmitBuffer((GLCommandBuffer)buffer);
+        _dispatcher.SubmitBuffer((GLCommandBuffer)buffer);
     }
 
 
     public override void WaitForIdle()
     {
-        s_glCommandProcessor.WaitForIdle();
+        _dispatcher.WaitForIdle();
     }
 
 
     public override void SwapBuffers()
     {
-        s_glCommandProcessor.SwapBuffers();
+        _dispatcher.SwapBuffers();
     }
 
     protected override GraphicsBackend GetBackend() => GraphicsBackend.OpenGL;
 
 
-    internal void FlushDisposables()
+    internal void EnqueueDisposable(GLDeferredResource disposable)
     {
+        _disposeQueue.Add(disposable);
+    }
 
+
+    internal void FlushDisposables(GL gl)
+    {
+        for (int i = 0; i < _disposeQueue.Count; i++)
+            _disposeQueue[i].DestroyResource(gl);
+
+        _disposeQueue.Clear();
     }
 }

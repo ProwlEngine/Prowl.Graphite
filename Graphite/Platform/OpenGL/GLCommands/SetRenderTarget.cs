@@ -13,11 +13,11 @@ internal struct SetRenderTarget : GLCommand
     public GLRenderTexture? Target;
 
 
-    public void Execute(GLDispatcher dispatcher)
+    public void Execute(GLDispatcher dispatcher, GL gl)
     {
         if (Target == null)
-            dispatcher.Gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         else
-            dispatcher.Gl.BindFramebuffer(FramebufferTarget.Framebuffer, Target._internalFramebuffer.Handle);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, Target._internalFramebuffer.Handle);
     }
 }

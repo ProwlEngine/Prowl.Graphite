@@ -5,12 +5,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 
-using System.Drawing;
-
 using Silk.NET.OpenGL;
 using Silk.NET.Core.Contexts;
-
-using Prowl.Vector;
 
 
 namespace Prowl.Graphite.OpenGL;
@@ -21,9 +17,9 @@ internal enum WorkItemType
 {
     ExecuteBuffer,
     GenericAction,
-    TerminateAction,
     SwapBuffers,
     WaitForIdle,
+    InitializeResource,
 }
 
 
@@ -46,9 +42,9 @@ internal unsafe struct GLWorkItem
         UInt1 = 0;
     }
 
-    public GLWorkItem(Action a, ManualResetEvent? mre, bool isTermination)
+    public GLWorkItem(Action<GL> a, ManualResetEvent? mre)
     {
-        Type = isTermination ? WorkItemType.TerminateAction : WorkItemType.GenericAction;
+        Type = WorkItemType.GenericAction;
         Object0 = a;
         Object1 = mre;
 
@@ -66,6 +62,13 @@ internal unsafe struct GLWorkItem
         UInt1 = 0;
     }
 
+    public GLWorkItem(GLDeferredResource resource, ManualResetEvent? mre)
+    {
+        Type = WorkItemType.InitializeResource;
+        Object0 = resource;
+        Object1 = mre;
+    }
+
     public GLWorkItem(WorkItemType type)
     {
         Type = type;
@@ -80,6 +83,8 @@ internal unsafe struct GLWorkItem
 
 internal class GLDispatcher
 {
+    private GLGraphicsDevice _device;
+
     private Func<IGLContext> _contextProvider;
     private IGLContext _context;
     private GL _gl;
@@ -87,12 +92,10 @@ internal class GLDispatcher
     private BlockingCollection<GLWorkItem> _processingQueue = new(new ConcurrentQueue<GLWorkItem>());
 
     internal IGLContext Context => _context;
-    internal GL Gl => _gl;
-    internal GLGraphicsDevice _device;
 
 
 
-    public GLDispatcher(GLGraphicsDevice device, Func<IGLContext> contextProvider)
+    public GLDispatcher(Func<IGLContext> contextProvider, GLGraphicsDevice device)
     {
         _device = device;
         _contextProvider = contextProvider;
@@ -114,6 +117,9 @@ internal class GLDispatcher
 
         _context.MakeCurrent();
 
+        _device.ARBBufferStorage = _gl.IsExtensionPresent("GL_ARB_buffer_storage");
+        _device.ARBDirectStateAccess = _gl.IsExtensionPresent("GL_ARB_direct_state_access");
+
         foreach (GLWorkItem workItem in _processingQueue.GetConsumingEnumerable())
         {
             ProcessItem(workItem);
@@ -123,7 +129,7 @@ internal class GLDispatcher
 
     public void SubmitBuffer(GLCommandBuffer buffer, object? fence = null)
     {
-        GLWorkItem workItem = new(new Queue<GLCommand>(buffer._glCommands), fence);
+        GLWorkItem workItem = new(new Queue<GLCommand>(buffer.Commands), fence);
         _processingQueue.Add(workItem);
     }
 
@@ -147,6 +153,36 @@ internal class GLDispatcher
     }
 
 
+    public void CreateResource(GLDeferredResource resource, bool blockUntilCreated = false)
+    {
+        ManualResetEvent? mre = blockUntilCreated ? ResetEventPool.Rent() : null;
+        GLWorkItem workItem = new(resource, mre);
+
+        _processingQueue.Add(workItem);
+
+        if (mre != null)
+        {
+            mre.WaitOne();
+            ResetEventPool.Return(mre);
+        }
+    }
+
+
+    public void EnqueueTask(Action<GL> task, bool blockUntilFinished = false)
+    {
+        ManualResetEvent? mre = blockUntilFinished ? ResetEventPool.Rent() : null;
+        GLWorkItem workItem = new(task, mre);
+
+        _processingQueue.Add(workItem);
+
+        if (mre != null)
+        {
+            mre.WaitOne();
+            ResetEventPool.Return(mre);
+        }
+    }
+
+
     private void ProcessItem(GLWorkItem workItem)
     {
         ManualResetEvent? eventAfterExecute = null;
@@ -159,7 +195,7 @@ internal class GLDispatcher
                     eventAfterExecute = Unsafe.As<ManualResetEvent>(workItem.Object0);
                     Debug.Assert(eventAfterExecute != null);
 
-                    _device.FlushDisposables();
+                    _device.FlushDisposables(_gl);
                     bool isFullFlush = workItem.UInt0 != 0;
                     if (isFullFlush)
                     {
@@ -171,7 +207,7 @@ internal class GLDispatcher
 
                 case WorkItemType.SwapBuffers:
                     _context.SwapBuffers();
-                    _device.FlushDisposables();
+                    _device.FlushDisposables(_gl);
 
                     break;
 
@@ -180,7 +216,35 @@ internal class GLDispatcher
                     Debug.Assert(commandQueue != null);
 
                     while (commandQueue.TryDequeue(out GLCommand? command))
-                        command.Execute(this);
+                        command.Execute(this, _gl);
+
+                    break;
+
+                case WorkItemType.InitializeResource:
+                    GLDeferredResource? resource = Unsafe.As<GLDeferredResource>(workItem.Object0);
+                    Debug.Assert(resource != null);
+
+                    if (workItem.Object1 != null)
+                    {
+                        eventAfterExecute = Unsafe.As<ManualResetEvent>(workItem.Object1);
+                        Debug.Assert(eventAfterExecute != null);
+                    }
+
+                    resource.CreateResource(_gl);
+
+                    break;
+
+                case WorkItemType.GenericAction:
+                    Action<GL>? action = Unsafe.As<Action<GL>>(workItem.Object0);
+                    Debug.Assert(action != null);
+
+                    if (workItem.Object1 != null)
+                    {
+                        eventAfterExecute = Unsafe.As<ManualResetEvent>(workItem.Object1);
+                        Debug.Assert(eventAfterExecute != null);
+                    }
+
+                    action.Invoke(_gl);
 
                     break;
             }

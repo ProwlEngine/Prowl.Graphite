@@ -17,27 +17,27 @@ internal unsafe struct SetScissorRect : GLCommand
     public Int4[] ScissorRects;
 
 
-    public void Execute(GLDispatcher dispatcher)
+    public void Execute(GLDispatcher dispatcher, GL gl)
     {
         if (Set)
         {
             if (ScissorRects == null)
             {
-                dispatcher.Gl.ScissorIndexed(ViewportIndex, ScissorRect.X, ScissorRect.Y, (uint)ScissorRect.Z, (uint)ScissorRect.W);
+                gl.ScissorIndexed(ViewportIndex, ScissorRect.X, ScissorRect.Y, (uint)ScissorRect.Z, (uint)ScissorRect.W);
             }
             else
             {
                 fixed (Int4* ScissorRectsPtr = ScissorRects)
-                    dispatcher.Gl.ScissorArray(ViewportIndex, (uint)ScissorRects.Length, (int*)ScissorRectsPtr);
+                    gl.ScissorArray(ViewportIndex, (uint)ScissorRects.Length, (int*)ScissorRectsPtr);
             }
         }
 
         if (Enable != null)
         {
             if (Enable.Value)
-                dispatcher.Gl.Enable(GLEnum.ScissorTest);
+                gl.Enable(GLEnum.ScissorTest);
             else
-                dispatcher.Gl.Disable(GLEnum.ScissorTest);
+                gl.Disable(GLEnum.ScissorTest);
         }
     }
 }

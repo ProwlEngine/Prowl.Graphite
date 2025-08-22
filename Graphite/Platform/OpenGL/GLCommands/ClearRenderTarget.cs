@@ -15,12 +15,12 @@ internal struct ClearRenderTarget : GLCommand
     public byte ClearStencil;
 
 
-    public void Execute(GLDispatcher dispatcher)
+    public void Execute(GLDispatcher dispatcher, GL gl)
     {
-        dispatcher.Gl.ClearColor(System.Drawing.Color.FromArgb(ClearColor.A, ClearColor.R, ClearColor.G, ClearColor.B));
-        dispatcher.Gl.ClearDepth(ClearDepth);
-        dispatcher.Gl.ClearStencil(ClearStencil);
+        gl.ClearColor(System.Drawing.Color.FromArgb(ClearColor.A, ClearColor.R, ClearColor.G, ClearColor.B));
+        gl.ClearDepth(ClearDepth);
+        gl.ClearStencil(ClearStencil);
 
-        dispatcher.Gl.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit | ClearBufferMask.ColorBufferBit);
+        gl.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit | ClearBufferMask.ColorBufferBit);
     }
 }

@@ -11,7 +11,6 @@ using Silk.NET.OpenGL;
 
 public unsafe class Program
 {
-    static GL gl;
     static Sdl sdl;
     static Window* window;
     static SdlContext context;

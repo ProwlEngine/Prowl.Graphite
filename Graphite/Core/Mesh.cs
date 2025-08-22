@@ -8,8 +8,10 @@ namespace Prowl.Graphite;
 
 public abstract class Mesh
 {
-    public static Mesh Create()
+    public static Mesh Create(GraphicsDevice? device = null)
     {
+        device ??= GraphicsDevice.Instance;
+
         return GraphicsDevice.Backend switch
         {
             GraphicsBackend.OpenGL => new OpenGL.GLMesh()

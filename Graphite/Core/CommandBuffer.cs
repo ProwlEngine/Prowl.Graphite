@@ -15,8 +15,10 @@ public abstract class CommandBuffer : IDisposable
     public required string Name { get; init; }
 
 
-    public static CommandBuffer Create(string name = "")
+    public static CommandBuffer Create(string name = "", GraphicsDevice? device = null)
     {
+        device ??= GraphicsDevice.Instance;
+
         return GraphicsDevice.Backend switch
         {
             GraphicsBackend.OpenGL => new OpenGL.GLCommandBuffer() { Name = name }

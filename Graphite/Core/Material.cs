@@ -8,8 +8,10 @@ namespace Prowl.Graphite;
 
 public abstract class Material
 {
-    public static Material Create(Shader shader)
+    public static Material Create(Shader shader, GraphicsDevice? device = null)
     {
+        device ??= GraphicsDevice.Instance;
+
         return GraphicsDevice.Backend switch
         {
             GraphicsBackend.OpenGL => new OpenGL.GLMaterial(shader)
@@ -17,7 +19,7 @@ public abstract class Material
     }
 
 
-    public Shader Shader { get; set; }
+    public Shader Shader { get; }
 
     internal Dictionary<string, object> _properties;
 

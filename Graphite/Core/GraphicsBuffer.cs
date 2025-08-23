@@ -35,9 +35,11 @@ public abstract unsafe class GraphicsBuffer : IDisposable
 
     public abstract void Dispose();
 
-    public abstract void GetData(void* data, int destinationIndex, int sourceIndex, int countBytes);
+    public abstract void GetData<T>(Memory<T> data, int managedSourceIndex, int graphicsBufferSourceIndex, int elements) where T : unmanaged;
 
-    public abstract void SetData(void* data, int sourceIndex, int destinationIndex, int countBytes);
+    public abstract void SetData<T>(Memory<T> data, int managedSourceIndex, int graphicsBufferSourceIndex, int elements) where T : unmanaged;
+
+    public abstract void CopyBuffer(GraphicsBuffer destination, int sourceIndex, int destinationIndex, int countBytes);
 
     public abstract void* MapBuffer();
 

@@ -7,7 +7,7 @@ using Prowl.Vector.Geometry;
 namespace Prowl.Graphite;
 
 
-public abstract class CommandBuffer : IDisposable
+public abstract unsafe class CommandBuffer : IDisposable
 {
     /// <summary>
     /// CommandBuffer name. Can be used to identify a buffer in thrown exceptions or in debug messages.
@@ -48,4 +48,8 @@ public abstract class CommandBuffer : IDisposable
     /// <param name="material"></param>
     /// <param name="pass"></param>
     public abstract void SetMaterial(Material material, int pass);
+
+    public abstract void SetBufferData<T>(GraphicsBuffer buffer, Memory<T> data, int sourceIndex, int destinationIndex, int count) where T : unmanaged;
+
+    public abstract void CopyBuffer(GraphicsBuffer source, GraphicsBuffer destination, int sourceIndex, int destinationIndex, int countBytes);
 }

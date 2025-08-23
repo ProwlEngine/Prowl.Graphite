@@ -7,6 +7,7 @@ using Prowl.Graphite.OpenGL;
 using Prowl.Vector;
 using System.Collections.Generic;
 using Silk.NET.OpenGL;
+using System.Linq;
 
 
 public unsafe class Program
@@ -27,6 +28,8 @@ public unsafe class Program
     static Material material;
     static CommandBuffer buffer;
     static RenderTexture target;
+
+    static GraphicsBuffer dataBuffer;
 
 
     public static void SetupWindow()
@@ -57,6 +60,22 @@ public unsafe class Program
 
         material = Material.Create(shader);
         target = RenderTexture.Create(1960, 1080, RenderTextureFormat.RGBA32);
+
+        dataBuffer = GraphicsBuffer.Create(new() { Usage = BufferUsage.None, Count = 5, Stride = 1, Target = BufferTarget.Vertex });
+
+        byte[] someData = [1, 2, 3, 4, 5];
+
+        dataBuffer.SetData<byte>(someData, 0, 0, dataBuffer.Count);
+
+        byte[] moreData = new byte[dataBuffer.Count];
+
+        dataBuffer.GetData<byte>(moreData, 0, 0, dataBuffer.Count);
+
+        if (!someData.SequenceEqual(moreData))
+        {
+            Console.WriteLine(string.Join(',', moreData));
+            throw new Exception("GPU readback failed");
+        }
 
         buffer = CommandBuffer.Create("Main Buffer");
 

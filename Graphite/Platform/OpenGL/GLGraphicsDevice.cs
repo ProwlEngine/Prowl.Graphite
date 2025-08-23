@@ -18,7 +18,6 @@ public partial class GLGraphicsDevice : GraphicsDevice
 
     internal GLDispatcher Dispatcher => _dispatcher;
 
-    internal bool ARBBufferStorage;
     internal bool ARBDirectStateAccess;
 
 

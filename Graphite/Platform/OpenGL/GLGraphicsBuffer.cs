@@ -12,7 +12,6 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
     private object _lock = new();
 
     private bool _disposeRequested;
-    private bool _canBufferSubData;
     private GLGraphicsDevice _device;
 
     public bool Created { get; private set; }
@@ -49,19 +48,6 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         EnsureResource();
     }
 
-    public static BufferStorageMask GetStorageMask(BufferUsage usage)
-    {
-        BufferStorageMask storageMask = 0;
-
-        if (usage.HasFlag(BufferUsage.MapForWrite))
-        {
-            storageMask |= BufferStorageMask.MapWriteBit;
-            storageMask |= BufferStorageMask.ClientStorageBit;
-            storageMask |= BufferStorageMask.DynamicStorageBit;
-        }
-
-        return storageMask;
-    }
 
     public static BufferUsageARB GetUsageHint(BufferTarget target)
     {
@@ -91,63 +77,30 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         if (Created)
             return;
 
-        BufferStorageMask mask = GetStorageMask(Usage);
+        uint buffer;
+        BufferUsageARB hint = GetUsageHint(Target);
 
         if (_device.ARBDirectStateAccess)
         {
-            uint buffer;
             gl.CreateBuffers(1, &buffer);
-            _buffer = buffer;
-
-
-            if (mask != 0 && _device.ARBBufferStorage)
-            {
-                gl.NamedBufferStorage(
-                    _buffer,
-                    (nuint)Size,
-                    null,
-                    mask);
-                _canBufferSubData = (mask & BufferStorageMask.DynamicStorageBit) != 0;
-            }
-            else
-            {
-                BufferUsageARB hint = GetUsageHint(Target);
-                gl.NamedBufferData(
-                    _buffer,
-                    (nuint)Size,
-                    null,
-                    (GLEnum)hint);
-                _canBufferSubData = true;
-            }
+            gl.NamedBufferData(
+                _buffer,
+                (nuint)Size,
+                null,
+                (GLEnum)hint);
         }
         else
         {
-            uint buffer;
             gl.GenBuffers(1, &buffer);
-            _buffer = buffer;
-
             gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer);
-
-            if (mask != 0 && _device.ARBBufferStorage)
-            {
-                gl.BufferStorage(
-                    (GLEnum)BufferTargetARB.CopyWriteBuffer,
-                    (nuint)Size,
-                    null,
-                    (uint)mask);
-                _canBufferSubData = (mask & BufferStorageMask.DynamicStorageBit) != 0;
-            }
-            else
-            {
-                BufferUsageARB hint = GetUsageHint(Target);
-                gl.BufferData(
-                    BufferTargetARB.CopyWriteBuffer,
-                    (nuint)Size,
-                    null,
-                    hint);
-                _canBufferSubData = true;
-            }
+            gl.BufferData(
+                BufferTargetARB.CopyWriteBuffer,
+                (nuint)Size,
+                null,
+                hint);
         }
+
+        _buffer = buffer;
 
         Created = true;
     }
@@ -171,24 +124,136 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
     }
 
 
-    public override unsafe void GetData(void* data, int destinationIndex, int sourceIndex, int countBytes)
+    public override void GetData<T>(Memory<T> data, int managedSourceIndex, int graphicsBufferSourceIndex, int count)
     {
+        EnsureResource();
+
+        _device.Dispatcher.EnqueueTask((gl) =>
+        {
+            fixed (T* dataPtr = data.Span)
+                GetBufferDataCore(gl, dataPtr, managedSourceIndex, graphicsBufferSourceIndex, count);
+
+            gl.Flush();
+            gl.Finish();
+        }, true);
     }
 
 
-    public override unsafe void SetData(void* data, int sourceIndex, int destinationIndex, int countBytes)
+    internal void GetBufferDataCore<T>(GL gl, T* data, int managedSourceIndex, int graphicsBufferSourceIndex, int count) where T : unmanaged
     {
-        if (!_canBufferSubData)
-            throw new Exception("Cannot write to read-only buffer");
+        managedSourceIndex *= sizeof(T);
+        graphicsBufferSourceIndex *= sizeof(T);
+        count *= sizeof(T);
+
+        if (_device.ARBDirectStateAccess)
+        {
+            gl.GetNamedBufferSubData(
+                _buffer,
+                graphicsBufferSourceIndex,
+                (nuint)count,
+                (byte*)data + managedSourceIndex);
+        }
+        else
+        {
+            BufferTargetARB bufferTarget = BufferTargetARB.CopyWriteBuffer;
+            gl.BindBuffer(bufferTarget, _buffer);
+
+            gl.GetBufferSubData(
+                bufferTarget,
+                graphicsBufferSourceIndex,
+                (nuint)count,
+                (byte*)data + managedSourceIndex);
+        }
+    }
+
+
+    public override void SetData<T>(Memory<T> data, int managedSourceIndex, int graphicsBufferSourceIndex, int count)
+    {
+        EnsureResource();
+
+        _device.Dispatcher.EnqueueTask((gl) =>
+        {
+            fixed (T* dataPtr = data.Span)
+                SetBufferDataCore(gl, dataPtr, managedSourceIndex, graphicsBufferSourceIndex, count);
+
+            gl.Flush();
+            gl.Finish();
+        }, true);
+    }
+
+
+    // Purely byte indices
+    internal void SetBufferDataCore<T>(GL gl, T* data, int managedSourceIndex, int graphicsBufferSourceIndex, int count) where T : unmanaged
+    {
+        managedSourceIndex *= sizeof(T);
+        graphicsBufferSourceIndex *= sizeof(T);
+        count *= sizeof(T);
+
+        if (_device.ARBDirectStateAccess)
+        {
+            gl.NamedBufferSubData(
+                _buffer,
+                graphicsBufferSourceIndex,
+                (nuint)count,
+                (byte*)data + managedSourceIndex);
+        }
+        else
+        {
+            BufferTargetARB bufferTarget = BufferTargetARB.CopyWriteBuffer;
+            gl.BindBuffer(bufferTarget, _buffer);
+
+            gl.BufferSubData(
+                bufferTarget,
+                graphicsBufferSourceIndex,
+                (nuint)count,
+                (byte*)data + managedSourceIndex);
+        }
+    }
+
+
+    public override void CopyBuffer(GraphicsBuffer destination, int sourceIndex, int destinationIndex, int countBytes)
+    {
+        EnsureResource();
+
+        _device.Dispatcher.EnqueueTask((gl) =>
+        {
+            CopyBufferCore(gl, destination, sourceIndex, destinationIndex, countBytes);
+
+            gl.Flush();
+            gl.Finish();
+        }, true);
+    }
+
+
+    internal void CopyBufferCore(GL gl, GraphicsBuffer destination, int sourceIndex, int destinationIndex, int countBytes)
+    {
+        if (_device.ARBDirectStateAccess)
+        {
+            gl.CopyNamedBufferSubData(
+                _buffer,
+                ((GLGraphicsBuffer)destination)._buffer,
+                sourceIndex,
+                destinationIndex,
+                (nuint)countBytes);
+        }
+        else
+        {
+            gl.BindBuffer(BufferTargetARB.CopyReadBuffer, _buffer);
+            gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, ((GLGraphicsBuffer)destination)._buffer);
+
+            gl.CopyBufferSubData(
+                (GLEnum)BufferTargetARB.CopyReadBuffer,
+                (GLEnum)BufferTargetARB.CopyWriteBuffer,
+                sourceIndex,
+                destinationIndex,
+                (nuint)countBytes);
+        }
     }
 
 
     public override unsafe void* MapBuffer()
     {
         EnsureResource();
-
-        if (!_canBufferSubData)
-            throw new Exception("Cannot write to read-only buffer");
 
         if (MapState == MapState.NotMappable)
             throw new Exception("Cannot map non-mappable buffer");

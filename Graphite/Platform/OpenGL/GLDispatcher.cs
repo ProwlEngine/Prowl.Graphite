@@ -115,6 +115,9 @@ internal class GLDispatcher
         _context = _contextProvider.Invoke();
         _gl = GL.GetApi(_context);
 
+        string version = _gl.GetStringS(GLEnum.Version);
+        Console.WriteLine(version);
+
         _context.MakeCurrent();
 
         _device.ARBDirectStateAccess = _gl.IsExtensionPresent("GL_ARB_direct_state_access");
@@ -122,6 +125,17 @@ internal class GLDispatcher
         foreach (GLWorkItem workItem in _processingQueue.GetConsumingEnumerable())
         {
             ProcessItem(workItem);
+        }
+    }
+
+
+    public void CheckError()
+    {
+        GLEnum error = _gl.GetError();
+
+        if (error != GLEnum.None)
+        {
+            throw new Exception("glGetError: " + error.ToString());
         }
     }
 
@@ -247,6 +261,11 @@ internal class GLDispatcher
 
                     break;
             }
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Exception on OpenGL thread");
+            throw;
         }
         finally
         {

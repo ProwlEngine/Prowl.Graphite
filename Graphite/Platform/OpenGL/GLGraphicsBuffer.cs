@@ -33,7 +33,7 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
     private BufferUsage _usage;
     public override BufferUsage Usage => _usage;
 
-    private uint _buffer;
+    private Silk.NET.OpenGL.Buffer _buffer;
     private void* _mapPtr;
 
 
@@ -77,30 +77,36 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         if (Created)
             return;
 
-        uint buffer;
         BufferUsageARB hint = GetUsageHint(Target);
+        GLDispatcher dispatcher = _device.Dispatcher;
 
         if (_device.ARBDirectStateAccess)
         {
-            gl.CreateBuffers(1, &buffer);
+            gl.CreateBuffers(1, out _buffer);
+            dispatcher.CheckError();
+
             gl.NamedBufferData(
-                _buffer,
+                _buffer.Handle,
                 (nuint)Size,
                 null,
                 (GLEnum)hint);
+            dispatcher.CheckError();
         }
         else
         {
-            gl.GenBuffers(1, &buffer);
-            gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer);
+            gl.GenBuffers(1, out _buffer);
+            dispatcher.CheckError();
+
+            gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer.Handle);
+            dispatcher.CheckError();
+
             gl.BufferData(
                 BufferTargetARB.CopyWriteBuffer,
                 (nuint)Size,
                 null,
                 hint);
+            dispatcher.CheckError();
         }
-
-        _buffer = buffer;
 
         Created = true;
     }
@@ -118,9 +124,8 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
 
     public void DestroyResource(GL gl)
     {
-        uint buffer = _buffer;
-        gl.DeleteBuffers(1, &buffer);
-        _buffer = buffer;
+        gl.DeleteBuffers(1, in _buffer);
+        _device.Dispatcher.CheckError();
     }
 
 
@@ -144,25 +149,29 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         managedSourceIndex *= sizeof(T);
         graphicsBufferSourceIndex *= sizeof(T);
         count *= sizeof(T);
+        GLDispatcher dispatcher = _device.Dispatcher;
 
         if (_device.ARBDirectStateAccess)
         {
             gl.GetNamedBufferSubData(
-                _buffer,
+                _buffer.Handle,
                 graphicsBufferSourceIndex,
                 (nuint)count,
                 (byte*)data + managedSourceIndex);
+            dispatcher.CheckError();
         }
         else
         {
             BufferTargetARB bufferTarget = BufferTargetARB.CopyWriteBuffer;
-            gl.BindBuffer(bufferTarget, _buffer);
+            gl.BindBuffer(bufferTarget, _buffer.Handle);
+            dispatcher.CheckError();
 
             gl.GetBufferSubData(
                 bufferTarget,
                 graphicsBufferSourceIndex,
                 (nuint)count,
                 (byte*)data + managedSourceIndex);
+            dispatcher.CheckError();
         }
     }
 
@@ -188,25 +197,29 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         managedSourceIndex *= sizeof(T);
         graphicsBufferSourceIndex *= sizeof(T);
         count *= sizeof(T);
+        GLDispatcher dispatcher = _device.Dispatcher;
 
         if (_device.ARBDirectStateAccess)
         {
             gl.NamedBufferSubData(
-                _buffer,
+                _buffer.Handle,
                 graphicsBufferSourceIndex,
                 (nuint)count,
                 (byte*)data + managedSourceIndex);
+            dispatcher.CheckError();
         }
         else
         {
             BufferTargetARB bufferTarget = BufferTargetARB.CopyWriteBuffer;
-            gl.BindBuffer(bufferTarget, _buffer);
+            gl.BindBuffer(bufferTarget, _buffer.Handle);
+            dispatcher.CheckError();
 
             gl.BufferSubData(
                 bufferTarget,
                 graphicsBufferSourceIndex,
                 (nuint)count,
                 (byte*)data + managedSourceIndex);
+            dispatcher.CheckError();
         }
     }
 
@@ -227,19 +240,25 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
 
     internal void CopyBufferCore(GL gl, GraphicsBuffer destination, int sourceIndex, int destinationIndex, int countBytes)
     {
+        GLDispatcher dispatcher = _device.Dispatcher;
+
         if (_device.ARBDirectStateAccess)
         {
             gl.CopyNamedBufferSubData(
-                _buffer,
-                ((GLGraphicsBuffer)destination)._buffer,
+                _buffer.Handle,
+                ((GLGraphicsBuffer)destination)._buffer.Handle,
                 sourceIndex,
                 destinationIndex,
                 (nuint)countBytes);
+            dispatcher.CheckError();
         }
         else
         {
-            gl.BindBuffer(BufferTargetARB.CopyReadBuffer, _buffer);
-            gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, ((GLGraphicsBuffer)destination)._buffer);
+            gl.BindBuffer(BufferTargetARB.CopyReadBuffer, _buffer.Handle);
+            dispatcher.CheckError();
+
+            gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, ((GLGraphicsBuffer)destination)._buffer.Handle);
+            dispatcher.CheckError();
 
             gl.CopyBufferSubData(
                 (GLEnum)BufferTargetARB.CopyReadBuffer,
@@ -247,6 +266,7 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
                 sourceIndex,
                 destinationIndex,
                 (nuint)countBytes);
+            dispatcher.CheckError();
         }
     }
 
@@ -261,24 +281,29 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         int offset = 0;
         nuint sizeInBytes = 0;
 
+        GLDispatcher dispatcher = _device.Dispatcher;
+
         lock (_lock)
         {
             if (_mapState == MapState.Mapped)
                 return _mapPtr;
 
-            _device.Dispatcher.EnqueueTask((gl) =>
+            dispatcher.EnqueueTask((gl) =>
             {
                 MapBufferAccessMask accessMask = MapBufferAccessMask.WriteBit | MapBufferAccessMask.InvalidateBufferBit | MapBufferAccessMask.InvalidateRangeBit;
 
                 if (_device.ARBDirectStateAccess)
                 {
-                    _mapPtr = gl.MapNamedBufferRange(_buffer, offset, sizeInBytes, accessMask);
+                    _mapPtr = gl.MapNamedBufferRange(_buffer.Handle, offset, sizeInBytes, accessMask);
+                    dispatcher.CheckError();
                 }
                 else
                 {
-                    gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer);
+                    gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer.Handle);
+                    dispatcher.CheckError();
 
                     _mapPtr = gl.MapBufferRange(BufferTargetARB.CopyWriteBuffer, offset, sizeInBytes, accessMask);
+                    dispatcher.CheckError();
                 }
             }, true);
 
@@ -299,18 +324,23 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
         if (_mapState == MapState.Unmapped)
             return;
 
+        GLDispatcher dispatcher = _device.Dispatcher;
+
         _device.Dispatcher.EnqueueTask((gl) =>
         {
             bool success;
             if (_device.ARBDirectStateAccess)
             {
-                success = gl.UnmapNamedBuffer(_buffer);
+                success = gl.UnmapNamedBuffer(_buffer.Handle);
+                dispatcher.CheckError();
             }
             else
             {
-                gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer);
+                gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, _buffer.Handle);
+                dispatcher.CheckError();
 
                 success = gl.UnmapBuffer(BufferTargetARB.CopyWriteBuffer);
+                dispatcher.CheckError();
             }
 
             if (!success)

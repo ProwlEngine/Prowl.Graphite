@@ -22,6 +22,7 @@ public unsafe class Program
 """;
 
     static GraphicsDevice device;
+    static ShaderCompiler compiler;
 
     static Prowl.Graphite.Shader shader;
     static Mesh mesh;
@@ -50,7 +51,9 @@ public unsafe class Program
             return context;
         });
 
-        if (!ShaderCompiler.CompileShader(ShaderSource, out shader))
+        compiler = new ShaderCompiler();
+
+        if (!compiler.CompileShader(ShaderSource, out shader))
             Console.WriteLine("Failed to compile shader");
 
         mesh = Mesh.Create();
@@ -60,41 +63,12 @@ public unsafe class Program
 
         material = Material.Create(shader);
         target = RenderTexture.Create(1960, 1080, RenderTextureFormat.RGBA32);
-
         dataBuffer = GraphicsBuffer.Create(new() { Usage = BufferUsage.None, Count = 5, Stride = 1, Target = BufferTarget.Vertex });
-
-        byte[] someData = [1, 2, 3, 4, 5];
-
-        dataBuffer.SetData<byte>(someData, 0, 0, dataBuffer.Count);
-
-        byte[] moreData = new byte[dataBuffer.Count];
-
-        dataBuffer.GetData<byte>(moreData, 0, 0, dataBuffer.Count);
-
-        if (!someData.SequenceEqual(moreData))
-        {
-            Console.WriteLine(string.Join(',', moreData));
-            throw new Exception("GPU readback failed");
-        }
 
         buffer = CommandBuffer.Create("Main Buffer");
 
-        bool isRunning = true;
-        while (isRunning)
+        while (Poll())
         {
-            Console.WriteLine("Polling");
-
-            Event sdlEvent = default;
-            while (sdl.PollEvent(ref sdlEvent) != 0)
-            {
-                if (sdlEvent.Type == (uint)EventType.Quit)
-                {
-                    sdl.Quit();
-                    isRunning = false;
-                    break;
-                }
-            }
-
             buffer.Clear();
 
             buffer.SetRenderTarget(null);
@@ -114,5 +88,21 @@ public unsafe class Program
         }
 
         Console.WriteLine("Quit Game");
+    }
+
+
+    private static bool Poll()
+    {
+        Event sdlEvent = default;
+        while (sdl.PollEvent(ref sdlEvent) != 0)
+        {
+            if (sdlEvent.Type == (uint)EventType.Quit)
+            {
+                sdl.Quit();
+                return false;
+            }
+        }
+
+        return true;
     }
 }

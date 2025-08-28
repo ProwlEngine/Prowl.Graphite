@@ -3,16 +3,9 @@
 
 using System.Text;
 
-using Prowl.Runtime;
-using Prowl.Runtime.Utils;
-using Prowl.Runtime.Rendering;
 
-using Veldrid;
+namespace Prowl.Graphite;
 
-using Debug = Prowl.Runtime.Debug;
-using Shader = Prowl.Runtime.Shader;
-
-namespace Prowl.Editor;
 
 public static class ShaderParser
 {

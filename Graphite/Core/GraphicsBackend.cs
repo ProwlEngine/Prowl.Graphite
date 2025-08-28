@@ -6,8 +6,8 @@ public enum GraphicsBackend
     OpenGL,
     OpenGLES,
     Vulkan,
-    DirectX11,
-    DirectX12,
+    Direct3D11,
+    Direct3D12,
     Metal,
     WebGL,
     WebGPU

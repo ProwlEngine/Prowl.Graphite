@@ -84,6 +84,7 @@ internal unsafe struct GLWorkItem
 internal class GLDispatcher
 {
     private GLGraphicsDevice _device;
+    private GLVertexInputCache _vertexCache;
 
     private Func<IGLContext> _contextProvider;
     private IGLContext _context;
@@ -92,6 +93,7 @@ internal class GLDispatcher
     private BlockingCollection<GLWorkItem> _processingQueue = new(new ConcurrentQueue<GLWorkItem>());
 
     internal IGLContext Context => _context;
+    internal GLVertexInputCache VertexCache => _vertexCache;
 
 
 
@@ -114,6 +116,7 @@ internal class GLDispatcher
     {
         _context = _contextProvider.Invoke();
         _gl = GL.GetApi(_context);
+        _vertexCache = new GLVertexInputCache(_device);
 
         string version = _gl.GetStringS(GLEnum.Version);
         Console.WriteLine(version);

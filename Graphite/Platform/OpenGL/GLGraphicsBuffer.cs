@@ -129,14 +129,14 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
     }
 
 
-    public override void GetData<T>(Memory<T> data, int managedSourceIndex, int graphicsBufferSourceIndex, int count)
+    public override void GetData<T>(Memory<T> data, int graphicsBufferSourceIndex)
     {
         EnsureResource();
 
         _device.Dispatcher.EnqueueTask((gl) =>
         {
             fixed (T* dataPtr = data.Span)
-                GetBufferDataCore(gl, dataPtr, managedSourceIndex, graphicsBufferSourceIndex, count);
+                GetBufferDataCore(gl, dataPtr, graphicsBufferSourceIndex, data.Length);
 
             gl.Flush();
             gl.Finish();
@@ -144,9 +144,8 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
     }
 
 
-    internal void GetBufferDataCore<T>(GL gl, T* data, int managedSourceIndex, int graphicsBufferSourceIndex, int count) where T : unmanaged
+    internal void GetBufferDataCore<T>(GL gl, T* data, int graphicsBufferSourceIndex, int count) where T : unmanaged
     {
-        managedSourceIndex *= sizeof(T);
         graphicsBufferSourceIndex *= sizeof(T);
         count *= sizeof(T);
         GLDispatcher dispatcher = _device.Dispatcher;
@@ -157,7 +156,7 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
                 _buffer.Handle,
                 graphicsBufferSourceIndex,
                 (nuint)count,
-                (byte*)data + managedSourceIndex);
+                data);
             dispatcher.CheckError();
         }
         else
@@ -170,20 +169,20 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
                 bufferTarget,
                 graphicsBufferSourceIndex,
                 (nuint)count,
-                (byte*)data + managedSourceIndex);
+                data);
             dispatcher.CheckError();
         }
     }
 
 
-    public override void SetData<T>(Memory<T> data, int managedSourceIndex, int graphicsBufferSourceIndex, int count)
+    public override void SetData<T>(Memory<T> data, int graphicsBufferSourceIndex)
     {
         EnsureResource();
 
         _device.Dispatcher.EnqueueTask((gl) =>
         {
             fixed (T* dataPtr = data.Span)
-                SetBufferDataCore(gl, dataPtr, managedSourceIndex, graphicsBufferSourceIndex, count);
+                SetBufferDataCore(gl, dataPtr, graphicsBufferSourceIndex, data.Length);
 
             gl.Flush();
             gl.Finish();
@@ -192,9 +191,8 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
 
 
     // Purely byte indices
-    internal void SetBufferDataCore<T>(GL gl, T* data, int managedSourceIndex, int graphicsBufferSourceIndex, int count) where T : unmanaged
+    internal void SetBufferDataCore<T>(GL gl, T* data, int graphicsBufferSourceIndex, int count) where T : unmanaged
     {
-        managedSourceIndex *= sizeof(T);
         graphicsBufferSourceIndex *= sizeof(T);
         count *= sizeof(T);
         GLDispatcher dispatcher = _device.Dispatcher;
@@ -205,7 +203,7 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
                 _buffer.Handle,
                 graphicsBufferSourceIndex,
                 (nuint)count,
-                (byte*)data + managedSourceIndex);
+                data);
             dispatcher.CheckError();
         }
         else
@@ -218,7 +216,7 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
                 bufferTarget,
                 graphicsBufferSourceIndex,
                 (nuint)count,
-                (byte*)data + managedSourceIndex);
+                data);
             dispatcher.CheckError();
         }
     }

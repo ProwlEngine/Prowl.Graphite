@@ -34,7 +34,7 @@ public class GLCommandBuffer : CommandBuffer
 
     public override void DrawMesh(Mesh mesh, Material material)
     {
-
+        Commands.Enqueue(new DrawMesh() { });
     }
 
 

@@ -19,6 +19,7 @@ public partial class GLGraphicsDevice : GraphicsDevice
     internal GLDispatcher Dispatcher => _dispatcher;
 
     internal bool ARBDirectStateAccess;
+    internal bool ARBVertexAttribBinding;
 
 
     public GLGraphicsDevice(Func<IGLContext> contextProvider) : base()

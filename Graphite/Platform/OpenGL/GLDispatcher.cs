@@ -124,6 +124,7 @@ internal class GLDispatcher
         _context.MakeCurrent();
 
         _device.ARBDirectStateAccess = _gl.IsExtensionPresent("GL_ARB_direct_state_access");
+        _device.ARBVertexAttribBinding = _gl.IsExtensionPresent("GL_ARB_vertex_attrib_binding");
 
         foreach (GLWorkItem workItem in _processingQueue.GetConsumingEnumerable())
         {

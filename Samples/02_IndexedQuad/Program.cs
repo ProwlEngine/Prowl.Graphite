@@ -19,11 +19,8 @@ class Program
     private static GL? _gl;
     private static GraphiteDevice? _device;
 
-    // Resources
-    private static GBuffer? _vertexBuffer;
-    private static GBuffer? _indexBuffer;
-    private static ShaderModule? _vertexShader;
-    private static ShaderModule? _fragmentShader;
+    private static GBuffer? _vertexBuffer, _indexBuffer;
+    private static ShaderModule? _vertexShader, _fragmentShader;
     private static PipelineState? _pipeline;
 
     static void Main(string[] args)
@@ -39,30 +36,21 @@ class Program
         _window.Render += OnRender;
         _window.Closing += OnClose;
         _window.Resize += OnResize;
-
         _window.Run();
     }
 
     private static void OnLoad()
     {
         _gl = GL.GetApi(_window!);
-
         _device = GraphiteDevice.CreateOpenGL(_gl);
         _device.Initialize(GraphiteDeviceOptions.Debug);
         _device.ResizeSwapchain((uint)_window!.Size.X, (uint)_window.Size.Y);
 
         Console.WriteLine($"Graphics Device: {_device.Capabilities.DeviceName}");
-        Console.WriteLine($"Backend: {_device.BackendName}");
 
         var input = _window.CreateInput();
         foreach (var keyboard in input.Keyboards)
-        {
-            keyboard.KeyDown += (kb, key, code) =>
-            {
-                if (key == Key.Escape)
-                    _window.Close();
-            };
-        }
+            keyboard.KeyDown += (kb, key, code) => { if (key == Key.Escape) _window.Close(); };
 
         CreateResources();
     }
@@ -70,42 +58,24 @@ class Program
     private static void CreateResources()
     {
         // Quad vertices: position (3) + color (3)
-        // Only 4 vertices needed for a quad when using indexed drawing
         float[] vertices =
         [
-            // Position          // Color
             -0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top-left - Red
              0.5f,  0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // Top-right - Green
              0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  // Bottom-right - Blue
             -0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  // Bottom-left - Yellow
         ];
 
-        // Index buffer: two triangles forming a quad (clockwise winding - Unity convention)
-        ushort[] indices =
-        [
-            0, 1, 2,  // First triangle
-            0, 2, 3,  // Second triangle
-        ];
+        ushort[] indices = [0, 1, 2, 0, 2, 3]; // CW winding
 
-        // Create vertex buffer
-        _vertexBuffer = _device!.CreateBuffer<byte>(
-            BufferUsage.Vertex | BufferUsage.CopyDestination,
-            MemoryMarshal.AsBytes<float>(vertices));
+        _vertexBuffer = _device!.CreateBuffer<byte>(BufferUsage.Vertex | BufferUsage.CopyDestination, MemoryMarshal.AsBytes<float>(vertices));
+        _indexBuffer = _device.CreateBuffer<byte>(BufferUsage.Index | BufferUsage.CopyDestination, MemoryMarshal.AsBytes<ushort>(indices));
 
-        // Create index buffer
-        _indexBuffer = _device.CreateBuffer<byte>(
-            BufferUsage.Index | BufferUsage.CopyDestination,
-            MemoryMarshal.AsBytes<ushort>(indices));
-
-        // Shaders
         const string vertexShaderSource = """
             #version 430 core
-
             layout(location = 0) in vec3 aPosition;
             layout(location = 1) in vec3 aColor;
-
             out vec3 vColor;
-
             void main() {
                 gl_Position = vec4(aPosition, 1.0);
                 vColor = aColor;
@@ -114,10 +84,8 @@ class Program
 
         const string fragmentShaderSource = """
             #version 430 core
-
             in vec3 vColor;
             out vec4 FragColor;
-
             void main() {
                 FragColor = vec4(vColor, 1.0);
             }
@@ -126,23 +94,18 @@ class Program
         _vertexShader = _device.CreateShaderModule(ShaderModuleDescriptor.VertexGLSL(vertexShaderSource));
         _fragmentShader = _device.CreateShaderModule(ShaderModuleDescriptor.FragmentGLSL(fragmentShaderSource));
 
-        // Create pipeline
         _pipeline = _device.CreatePipelineState(new PipelineStateDescriptor
         {
             VertexShader = _vertexShader,
             FragmentShader = _fragmentShader,
             VertexLayout = new VertexLayoutDescriptor(
-                new VertexBufferLayout(24, // 6 floats * 4 bytes
-                    new VertexAttribute(0, VertexFormat.Float3, 0),  // Position
-                    new VertexAttribute(1, VertexFormat.Float3, 12)  // Color
+                new VertexBufferLayout(24,
+                    new VertexAttribute(0, VertexFormat.Float3, 0),
+                    new VertexAttribute(1, VertexFormat.Float3, 12)
                 )
             ),
-            Topology = PrimitiveTopology.TriangleList,
-            RasterizerState = RasterizerStateDescriptor.Default,
             DepthStencilState = DepthStencilStateDescriptor.NoDepth,
-            BlendState = BlendStateDescriptor.Opaque,
-            RenderPassLayout = RenderPassLayout.SingleColor(TextureFormat.RGBA8Unorm),
-            BindGroupLayouts = [],
+            RenderPassLayout = RenderPassLayout.SingleColor(TextureFormat.RGBA8Unorm, null),
         });
     }
 
@@ -150,33 +113,21 @@ class Program
     {
         if (_device == null || _pipeline == null) return;
 
-        var swapchainTexture = _device.GetSwapchainTexture();
-
-        using var commandList = _device.CreateCommandList();
-        commandList.Begin();
-
-        var colorAttachment = RenderPassColorAttachment.Clear(swapchainTexture, new Float4(0.1f, 0.1f, 0.2f, 1.0f));
-        commandList.BeginRenderPass(RenderPassDescriptor.SingleColor(colorAttachment));
-
-        commandList.SetViewport(0, 0, _device.SwapchainWidth, _device.SwapchainHeight);
-
-        commandList.SetPipeline(_pipeline);
-        commandList.SetVertexBuffer(0, _vertexBuffer!);
-        commandList.SetIndexBuffer(_indexBuffer!, IndexFormat.Uint16);
-
-        // Draw indexed: 6 indices (2 triangles)
-        commandList.DrawIndexed(6);
-
-        commandList.EndRenderPass();
-        commandList.End();
-
-        _device.SubmitCommands(commandList);
+        using var cmd = _device.CreateCommandList();
+        cmd.Begin();
+        cmd.BeginRenderPass(RenderPassDescriptor.SingleColor(
+            RenderPassColorAttachment.Clear(_device.GetSwapchainTexture(), new Float4(0.1f, 0.1f, 0.2f, 1.0f))));
+        cmd.SetViewport(0, 0, _device.SwapchainWidth, _device.SwapchainHeight);
+        cmd.SetPipeline(_pipeline);
+        cmd.SetVertexBuffer(0, _vertexBuffer!);
+        cmd.SetIndexBuffer(_indexBuffer!, IndexFormat.Uint16);
+        cmd.DrawIndexed(6);
+        cmd.EndRenderPass();
+        cmd.End();
+        _device.SubmitCommands(cmd);
     }
 
-    private static void OnResize(Silk.NET.Maths.Vector2D<int> size)
-    {
-        _device?.ResizeSwapchain((uint)size.X, (uint)size.Y);
-    }
+    private static void OnResize(Silk.NET.Maths.Vector2D<int> size) => _device?.ResizeSwapchain((uint)size.X, (uint)size.Y);
 
     private static void OnClose()
     {

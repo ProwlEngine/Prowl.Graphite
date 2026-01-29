@@ -126,7 +126,7 @@ public struct RasterizerStateDescriptor
     {
         PolygonMode = PolygonMode.Fill;
         CullMode = CullMode.Back;
-        FrontFace = FrontFace.CounterClockwise;
+        FrontFace = FrontFace.Clockwise; // Unity convention
         DepthClampEnable = false;
         DepthBiasEnable = false;
         DepthBiasConstant = 0;

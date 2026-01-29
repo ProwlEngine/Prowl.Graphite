@@ -349,12 +349,13 @@ void main()
 #version 430 core
 
 // Generates a fullscreen triangle from vertex ID (no vertex buffer needed)
+// Uses clockwise winding to match Unity convention
 void main()
 {
     vec2 positions[3] = vec2[](
         vec2(-1.0, -1.0),
-        vec2( 3.0, -1.0),
-        vec2(-1.0,  3.0)
+        vec2(-1.0,  3.0),
+        vec2( 3.0, -1.0)
     );
     gl_Position = vec4(positions[gl_VertexID], 0.0, 1.0);
 }
@@ -962,17 +963,17 @@ void main()
     gl_Position = vec4(aPosition, 1.0);
 }
 ";
-        // Two fullscreen triangles at different depths
+        // Two fullscreen triangles at different depths (CW winding)
         var vertices = new float[]
         {
             // Triangle 1 (red) - further away (z=0.8)
             -1, -1, 0.8f,
-             3, -1, 0.8f,
             -1,  3, 0.8f,
+             3, -1, 0.8f,
             // Triangle 2 (green) - closer (z=0.2)
             -1, -1, 0.2f,
-             3, -1, 0.2f,
             -1,  3, 0.2f,
+             3, -1, 0.2f,
         };
 
         using var vertexBuffer = _fixture.Device.CreateBuffer<float>(
@@ -1326,13 +1327,13 @@ void main()
             MemoryAccess = MemoryAccess.GpuToCpu
         });
 
-        // Vertex data: Float3 position + Float2 texcoord per vertex (stride 20)
+        // Vertex data: Float3 position + Float2 texcoord per vertex (stride 20) - CW winding
         var vertices = new float[]
         {
             // Fullscreen triangle with texcoords
             -1f, -1f, 0f,   0f, 1f,
-             3f, -1f, 0f,   2f, 1f,
             -1f,  3f, 0f,   0f, -1f,
+             3f, -1f, 0f,   2f, 1f,
         };
 
         using var vertexBuffer = _fixture.Device.CreateBuffer<float>(
@@ -2694,19 +2695,19 @@ void main()
         var vertices = new byte[36]; // 3 vertices * 12 bytes
         var span = vertices.AsSpan();
 
-        // Vertex 0: position (-1, -1), index = 42
+        // Vertex 0: position (-1, -1), index = 42 - CW winding
         BitConverter.TryWriteBytes(span.Slice(0, 4), -1.0f);
         BitConverter.TryWriteBytes(span.Slice(4, 4), -1.0f);
         BitConverter.TryWriteBytes(span.Slice(8, 4), 42);
 
-        // Vertex 1: position (3, -1), index = 42
-        BitConverter.TryWriteBytes(span.Slice(12, 4), 3.0f);
-        BitConverter.TryWriteBytes(span.Slice(16, 4), -1.0f);
+        // Vertex 1: position (-1, 3), index = 42
+        BitConverter.TryWriteBytes(span.Slice(12, 4), -1.0f);
+        BitConverter.TryWriteBytes(span.Slice(16, 4), 3.0f);
         BitConverter.TryWriteBytes(span.Slice(20, 4), 42);
 
-        // Vertex 2: position (-1, 3), index = 42
-        BitConverter.TryWriteBytes(span.Slice(24, 4), -1.0f);
-        BitConverter.TryWriteBytes(span.Slice(28, 4), 3.0f);
+        // Vertex 2: position (3, -1), index = 42
+        BitConverter.TryWriteBytes(span.Slice(24, 4), 3.0f);
+        BitConverter.TryWriteBytes(span.Slice(28, 4), -1.0f);
         BitConverter.TryWriteBytes(span.Slice(32, 4), 42);
 
         using var vertexBuffer = _fixture.Device.CreateBuffer<byte>(

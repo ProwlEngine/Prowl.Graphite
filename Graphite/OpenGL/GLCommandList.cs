@@ -350,6 +350,13 @@ internal class GLCommandList : CommandList
         {
             var attachment = descriptor.DepthStencilAttachment.Value;
 
+            // Ensure depth mask is enabled before clearing - OpenGL requires this
+            // (a previous pipeline may have set glDepthMask(false))
+            if (attachment.DepthLoadOp == LoadOp.Clear)
+            {
+                _device.GL.DepthMask(true);
+            }
+
             if (attachment.DepthLoadOp == LoadOp.Clear && attachment.StencilLoadOp == LoadOp.Clear)
             {
                 _device.GL.ClearBuffer(GLEnum.DepthStencil, 0, attachment.DepthClearValue, attachment.StencilClearValue);

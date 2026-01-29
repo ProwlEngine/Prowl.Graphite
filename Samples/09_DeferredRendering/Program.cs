@@ -21,11 +21,11 @@ class Program
 
     private static Texture? _gPosition, _gNormal, _gAlbedo, _gDepth;
 
-    private static GBuffer? _cubeVB, _cubeIB, _planeVB, _planeIB, _geometryUB;
+    private static GBuffer? _cubeVB, _cubeIB, _planeVB, _planeIB, _cubeUB, _floorUB;
     private static ShaderModule? _geometryVS, _geometryFS;
     private static PipelineState? _geometryPipeline;
     private static BindGroupLayout? _geometryLayout;
-    private static BindGroup? _geometryBindGroup;
+    private static BindGroup? _cubeBindGroup, _floorBindGroup;
 
     private static ShaderModule? _lightingVS, _lightingFS;
     private static PipelineState? _lightingPipeline;
@@ -107,7 +107,8 @@ class Program
         _cubeIB = _device.CreateBuffer<byte>(BufferUsage.Index | BufferUsage.CopyDestination, MemoryMarshal.AsBytes<ushort>(cubeIdx));
         _planeVB = _device.CreateBuffer<byte>(BufferUsage.Vertex | BufferUsage.CopyDestination, MemoryMarshal.AsBytes<float>(planeVerts));
         _planeIB = _device.CreateBuffer<byte>(BufferUsage.Index | BufferUsage.CopyDestination, MemoryMarshal.AsBytes<ushort>(planeIdx));
-        _geometryUB = _device.CreateBuffer(BufferDescriptor.Uniform((uint)Marshal.SizeOf<GeometryUniformData>()));
+        _cubeUB = _device.CreateBuffer(BufferDescriptor.Uniform((uint)Marshal.SizeOf<GeometryUniformData>()));
+        _floorUB = _device.CreateBuffer(BufferDescriptor.Uniform((uint)Marshal.SizeOf<GeometryUniformData>()));
 
         const string geometryVS = """
             #version 430 core
@@ -141,7 +142,8 @@ class Program
         _geometryFS = _device.CreateShaderModule(ShaderModuleDescriptor.FragmentGLSL(geometryFS));
 
         _geometryLayout = _device.CreateBindGroupLayout(new BindGroupLayoutDescriptor(BindGroupLayoutEntry.UniformBuffer(0, ShaderStage.Vertex)));
-        _geometryBindGroup = _device.CreateBindGroup(new BindGroupDescriptor(_geometryLayout, BindGroupEntry.ForBuffer(0, _geometryUB)));
+        _cubeBindGroup = _device.CreateBindGroup(new BindGroupDescriptor(_geometryLayout, BindGroupEntry.ForBuffer(0, _cubeUB)));
+        _floorBindGroup = _device.CreateBindGroup(new BindGroupDescriptor(_geometryLayout, BindGroupEntry.ForBuffer(0, _floorUB)));
 
         _geometryPipeline = _device.CreatePipelineState(new PipelineStateDescriptor
         {
@@ -266,20 +268,23 @@ class Program
         });
         cmd.SetViewport(0, 0, _device.SwapchainWidth, _device.SwapchainHeight);
         cmd.SetPipeline(_geometryPipeline);
-        cmd.SetBindGroup(0, _geometryBindGroup!);
+
+        // Update both uniform buffers before recording draw commands
+        var floorU = new GeometryUniformData { Model = Float4x4.Identity, View = view, Projection = projection };
+        var cubeU = new GeometryUniformData { Model = Float4x4.RotateX(_time * 0.5f) * Float4x4.RotateY(_time), View = view, Projection = projection };
+        _device.UpdateBuffer(_floorUB!, 0, MemoryMarshal.CreateReadOnlySpan(ref floorU, 1));
+        _device.UpdateBuffer(_cubeUB!, 0, MemoryMarshal.CreateReadOnlySpan(ref cubeU, 1));
 
         // Floor
-        var floorU = new GeometryUniformData { Model = Float4x4.Identity, View = view, Projection = projection };
-        _device.UpdateBuffer(_geometryUB!, 0, MemoryMarshal.CreateReadOnlySpan(ref floorU, 1));
+        cmd.SetBindGroup(0, _floorBindGroup!);
         cmd.SetVertexBuffer(0, _planeVB!);
         cmd.SetIndexBuffer(_planeIB!, IndexFormat.Uint16);
         cmd.DrawIndexed(6);
 
         // Cube
+        cmd.SetBindGroup(0, _cubeBindGroup!);
         cmd.SetVertexBuffer(0, _cubeVB!);
         cmd.SetIndexBuffer(_cubeIB!, IndexFormat.Uint16);
-        var cubeU = new GeometryUniformData { Model = Float4x4.RotateX(_time * 0.5f) * Float4x4.RotateY(_time), View = view, Projection = projection };
-        _device.UpdateBuffer(_geometryUB!, 0, MemoryMarshal.CreateReadOnlySpan(ref cubeU, 1));
         cmd.DrawIndexed(36);
         cmd.EndRenderPass();
 
@@ -307,8 +312,8 @@ class Program
     {
         _lightingPipeline?.Dispose(); _lightingBindGroup?.Dispose(); _lightingLayout?.Dispose();
         _lightingFS?.Dispose(); _lightingVS?.Dispose(); _lightingUB?.Dispose(); _sampler?.Dispose();
-        _geometryPipeline?.Dispose(); _geometryBindGroup?.Dispose(); _geometryLayout?.Dispose();
-        _geometryFS?.Dispose(); _geometryVS?.Dispose(); _geometryUB?.Dispose();
+        _geometryPipeline?.Dispose(); _cubeBindGroup?.Dispose(); _floorBindGroup?.Dispose(); _geometryLayout?.Dispose();
+        _geometryFS?.Dispose(); _geometryVS?.Dispose(); _cubeUB?.Dispose(); _floorUB?.Dispose();
         _planeIB?.Dispose(); _planeVB?.Dispose(); _cubeIB?.Dispose(); _cubeVB?.Dispose();
         _gDepth?.Dispose(); _gAlbedo?.Dispose(); _gNormal?.Dispose(); _gPosition?.Dispose();
         _device?.Dispose();

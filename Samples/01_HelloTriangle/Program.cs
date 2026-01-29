@@ -70,12 +70,13 @@ class Program
     {
         // Simple triangle vertices: position (3) + color (3)
         // Using NDC coordinates directly (-1 to 1)
+        // CW winding order (Unity convention)
         float[] vertices =
         [
             // Position          // Color
              0.0f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top - Red
-            -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // Bottom Left - Green
              0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  // Bottom Right - Blue
+            -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // Bottom Left - Green
         ];
 
         // Create vertex buffer

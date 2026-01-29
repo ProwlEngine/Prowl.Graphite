@@ -1,41 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <OutputType>Library</OutputType>
-        <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> -->
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <TargetType>library</TargetType>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>8600;8601;8618;8602;8603;8604;8625;1591</NoWarn>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <PackageId>Prowl.Graphite</PackageId>
-        <Version>0.0.1</Version>
+  <!-- Allow test project to access internal members -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Prowl.Runtime.Test" />
+  </ItemGroup>
 
-        <Authors>Prowl Group</Authors>
-        <Owners>Prowl Group</Owners>
-        <Copyright>Copyright (c) Prowl Group 2025.</Copyright>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>../Build/Graphite/Debug/</OutputPath>
+  </PropertyGroup>
 
-        <Description>A cross-platform graphics abstraction API for .NET.</Description>
-        <RepositoryUrl>https://github.com/ProwlEngine/Prowl.Slang</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>../Build/Graphite/Release/</OutputPath>
+  </PropertyGroup>
 
-        <PackageTags>graphics api DirectX Vulkan OpenGL Metal direct-x direct3D11 direct3D12</PackageTags>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  <ItemGroup>
+    <PackageReference Include="Prowl.Vector" Version="2.1.0" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
+  </ItemGroup>
 
-        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Prowl.Slang" Version="0.1.1" />
-      <PackageReference Include="Prowl.Vector" Version="2.0.0-preview.1" />
-
-      <PackageReference Include="Silk.NET.Direct3D11" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.Direct3D12" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.OpenGLES" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.Vulkan" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.WebGPU" Version="2.22.0" />
-    </ItemGroup>
 </Project>

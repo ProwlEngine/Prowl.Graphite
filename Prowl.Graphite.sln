@@ -17,6 +17,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "04_UniformBuffers", "Sample
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "05_SpinningCube", "Samples\05_SpinningCube\05_SpinningCube.csproj", "{E4F5A6B7-C8D9-4012-EF01-234567891234}"
 EndProject
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "09_DeferredRendering", "Samples\09_DeferredRendering\09_DeferredRendering.csproj", "{C8D9E0F1-A2B3-4456-2345-678912345678}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prowl.Runtime.Test", "Tests\Prowl.Runtime.Test.csproj", "{B2C3D4E5-F6A7-4890-BCDE-F01234567890}"
 EndProject
 Global

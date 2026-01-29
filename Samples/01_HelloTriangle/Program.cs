@@ -8,7 +8,7 @@ using Silk.NET.Windowing;
 using GL = Silk.NET.OpenGL.GL;
 using GBuffer = Prowl.Graphite.Buffer;
 
-namespace GraphiteCube;
+namespace HelloTriangle;
 
 class Program
 {

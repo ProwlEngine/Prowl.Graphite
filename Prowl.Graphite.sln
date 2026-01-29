@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prowl.Graphite", "Graphite\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{7B6A57EC-FC7A-4D56-A411-4B9FE0FDF338}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraphiteCube", "Samples\GraphiteCube\GraphiteCube.csproj", "{A1B2C3D4-E5F6-4789-ABCD-EF0123456789}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "01_HelloTriangle", "Samples\01_HelloTriangle\01_HelloTriangle.csproj", "{A1B2C3D4-E5F6-4789-ABCD-EF0123456789}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prowl.Runtime.Test", "Tests\Prowl.Runtime.Test.csproj", "{B2C3D4E5-F6A7-4890-BCDE-F01234567890}"
 EndProject

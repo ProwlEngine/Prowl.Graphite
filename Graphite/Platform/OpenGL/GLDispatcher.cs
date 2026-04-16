@@ -171,6 +171,15 @@ internal class GLDispatcher
 
     public void CreateResource(GLDeferredResource resource, bool blockUntilCreated = false)
     {
+        bool isExecutionThread = Thread.CurrentThread.ManagedThreadId == _glExecutionThread.ManagedThreadId;
+
+        // If we block on the execution thread we end up deadlocking the thread, so simply initialize the resource immediately.
+        if (isExecutionThread)
+        {
+            resource.CreateResource(_gl);
+            return;
+        }
+
         ManualResetEvent? mre = blockUntilCreated ? ResetEventPool.Rent() : null;
         GLWorkItem workItem = new(resource, mre);
 

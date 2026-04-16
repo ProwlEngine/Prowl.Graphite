@@ -33,7 +33,7 @@ internal sealed unsafe class GLGraphicsBuffer : GraphicsBuffer, GLDeferredResour
     private BufferUsage _usage;
     public override BufferUsage Usage => _usage;
 
-    private Silk.NET.OpenGL.Buffer _buffer;
+    internal Silk.NET.OpenGL.Buffer _buffer;
     private void* _mapPtr;
 
 

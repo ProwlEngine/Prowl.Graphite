@@ -3,6 +3,8 @@
 
 using System.Text;
 
+/*
+
 using Glslang.NET;
 
 using Prowl.Runtime;
@@ -278,3 +280,5 @@ public static partial class ShaderCompiler
         return byteArr;
     }
 }
+
+*/

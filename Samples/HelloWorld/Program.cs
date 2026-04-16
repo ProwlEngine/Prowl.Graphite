@@ -28,7 +28,7 @@ public unsafe class Program
     static Mesh mesh;
     static Material material;
     static CommandBuffer buffer;
-    static RenderTexture target;
+    static RenderTarget target;
 
     static GraphicsBuffer dataBuffer;
 
@@ -51,18 +51,17 @@ public unsafe class Program
             return context;
         });
 
-        compiler = new ShaderCompiler();
+        // compiler = new ShaderCompiler();
 
-        if (!compiler.CompileShader(ShaderSource, out shader))
-            Console.WriteLine("Failed to compile shader");
+        // if (!compiler.CompileShader(ShaderSource, out shader))
+        //    Console.WriteLine("Failed to compile shader");
 
-        mesh = Mesh.Create();
-
-        mesh.SetVertices(new List<Float3>());
-        mesh.SetIndices(new List<int>());
+        // mesh = Constants.CreateCube();
 
         material = Material.Create(shader);
-        target = RenderTexture.Create(1960, 1080, RenderTextureFormat.RGBA32);
+
+        // target = RenderTexture.Create(1920, 1080, TextureFormat.RGBA32);
+
         dataBuffer = GraphicsBuffer.Create(new() { Usage = BufferUsage.None, Count = 5, Stride = 1, Target = BufferTarget.Vertex });
 
         buffer = CommandBuffer.Create("Main Buffer");
@@ -77,14 +76,13 @@ public unsafe class Program
             // material.SetVector("Color", new Vector3(0.5, 0.5, 1.0));
             // material.SetMatrix("MVP", Matrix4x4.Identity);
 
-            buffer.SetMaterial(material, 0);
+            // buffer.SetMaterial(material, 0);
 
-            buffer.DrawMesh(mesh, material);
+            // buffer.DrawMesh(mesh, material);
 
             device.SubmitCommands(buffer);
 
             device.SwapBuffers();
-
         }
 
         Console.WriteLine("Quit Game");

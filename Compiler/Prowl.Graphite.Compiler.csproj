@@ -9,14 +9,14 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <PackageId>Prowl.Graphite</PackageId>
+        <PackageId>Prowl.Graphite.Compiler</PackageId>
         <Version>0.0.1</Version>
 
         <Authors>Prowl Group</Authors>
         <Owners>Prowl Group</Owners>
         <Copyright>Copyright (c) Prowl Group 2025.</Copyright>
 
-        <Description>A cross-platform graphics abstraction API for .NET.</Description>
+        <Description>A shader compiler for Graphite shaders.</Description>
         <RepositoryUrl>https://github.com/ProwlEngine/Prowl.Graphite</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
 
@@ -25,16 +25,24 @@
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
 
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+
+        <!-- Toggle this when packing -->
+        <UseLocalProjectReferences Condition="'$(UseLocalProjectReferences)' == ''">true</UseLocalProjectReferences>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Prowl.Vector" Version="2.0.0-preview.1" />
+        <PackageReference Include="Prowl.Slang" Version="0.2.1" />
+        <PackageReference Include="Prowl.Vector" Version="2.0.0-preview.1" />
+        <PackageReference Include="Superpower" Version="3.1.0" />
+    </ItemGroup>
 
-      <PackageReference Include="Silk.NET.Direct3D11" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.Direct3D12" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.OpenGLES" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.Vulkan" Version="2.22.0" />
-      <PackageReference Include="Silk.NET.WebGPU" Version="2.22.0" />
+    <!-- Local development -->
+    <ItemGroup Condition="'$(UseLocalProjectReferences)' == 'true'">
+        <ProjectReference Include="..\Graphite\Prowl.Graphite.csproj" />
+    </ItemGroup>
+
+    <!-- NuGet dependency -->
+    <ItemGroup Condition="'$(UseLocalProjectReferences)' != 'true'">
+        <PackageReference Include="Prowl.Graphite" Version="1.0.0" />
     </ItemGroup>
 </Project>

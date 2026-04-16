@@ -21,6 +21,8 @@ public partial class GLGraphicsDevice : GraphicsDevice
     internal bool ARBDirectStateAccess;
     internal bool ARBVertexAttribBinding;
 
+    internal bool UseModernBindingStyle => ARBDirectStateAccess && ARBVertexAttribBinding;
+
 
     public GLGraphicsDevice(Func<IGLContext> contextProvider) : base()
     {

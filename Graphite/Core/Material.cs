@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using Prowl.Vector;
@@ -26,7 +27,7 @@ public abstract class Material
 
     private void SetProperty(string name, object value)
     {
-        if (Shader.Properties.Contains(name))
+        if (Array.Exists(Shader.Properties, x => x.Name == name))
             _properties[name] = value;
     }
 

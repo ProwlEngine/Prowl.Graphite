@@ -7,6 +7,8 @@ namespace Prowl.Graphite;
 
 public abstract class Shader
 {
+    public string Name;
+
     public ShaderProperty[] Properties;
     public ShaderPass[] Passes;
 
@@ -38,17 +40,6 @@ public abstract class Shader
             if (Passes[i].HasTag(tag, tagValue))
                 yield return i;
         }
-    }
-
-
-    public static Shader Create(GraphicsDevice? device = null)
-    {
-        device ??= GraphicsDevice.Instance;
-
-        return GraphicsDevice.Backend switch
-        {
-            GraphicsBackend.OpenGL => new OpenGL.GLShader()
-        };
     }
 }
 

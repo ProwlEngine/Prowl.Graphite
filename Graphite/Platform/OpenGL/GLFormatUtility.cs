@@ -100,7 +100,7 @@ public static class GLFormatUtility
         _ => GLStencilOp.Keep,
     };
 
-    public static BlendEquationModeEXT ToGLBlendEquation(BlendEquation eq) => eq switch
+    public static BlendEquationModeEXT ToGLBlendEquation(this BlendEquation eq) => eq switch
     {
         BlendEquation.Add => BlendEquationModeEXT.FuncAdd,
         BlendEquation.Subtract => BlendEquationModeEXT.FuncSubtract,
@@ -110,7 +110,7 @@ public static class GLFormatUtility
         _ => BlendEquationModeEXT.FuncAdd,
     };
 
-    public static BlendingFactor ToGLBlendFactor(BlendFactor factor) => factor switch
+    public static BlendingFactor ToGLBlendFactor(this BlendFactor factor) => factor switch
     {
         BlendFactor.Zero => BlendingFactor.Zero,
         BlendFactor.One => BlendingFactor.One,

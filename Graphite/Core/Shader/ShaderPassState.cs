@@ -39,6 +39,7 @@ public struct ShaderPassState
     public uint StencilBackWriteMask;
 
     // -------------------- Blending (equation / factors) --------------------
+    public bool EnableBlend;
     public BlendEquation BlendEquationRgb;
     public BlendEquation BlendEquationAlpha;
     public BlendFactor BlendSrcRgb;
@@ -53,8 +54,4 @@ public struct ShaderPassState
 
     // -------------------- Color Write Mask --------------------
     public ColorWriteMask WriteMask;
-    public bool ColorMaskR;
-    public bool ColorMaskG;
-    public bool ColorMaskB;
-    public bool ColorMaskA;
 }

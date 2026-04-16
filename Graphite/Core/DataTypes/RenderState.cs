@@ -108,6 +108,7 @@ public enum LogicOp
 [Flags]
 public enum ColorWriteMask
 {
+    None = 0,
     R = 1 << 0,
     G = 1 << 1,
     B = 1 << 2,

@@ -48,6 +48,7 @@ internal class GLPipeline
             if (_renderState.EnableCulling) gl.Enable(EnableCap.CullFace);
             else gl.Disable(EnableCap.CullFace);
         }
+
         if (_renderState.EnableCulling)
         {
             if (noPrev || prev.CullFace != _renderState.CullFace)
@@ -62,10 +63,11 @@ internal class GLPipeline
             if (_renderState.EnablePolygonOffsetFill) gl.Enable(EnableCap.PolygonOffsetFill);
             else gl.Disable(EnableCap.PolygonOffsetFill);
         }
-        if (_renderState.EnablePolygonOffsetFill &&
-            (noPrev || prev.PolygonOffsetFactor != _renderState.PolygonOffsetFactor || prev.PolygonOffsetUnits != _renderState.PolygonOffsetUnits))
+
+        if (_renderState.EnablePolygonOffsetFill)
         {
-            gl.PolygonOffset(_renderState.PolygonOffsetFactor, _renderState.PolygonOffsetUnits);
+            if (noPrev || prev.PolygonOffsetFactor != _renderState.PolygonOffsetFactor || prev.PolygonOffsetUnits != _renderState.PolygonOffsetUnits)
+                gl.PolygonOffset(_renderState.PolygonOffsetFactor, _renderState.PolygonOffsetUnits);
         }
 
         // ---- Depth ----
@@ -74,10 +76,14 @@ internal class GLPipeline
             if (_renderState.EnableDepthTest) gl.Enable(EnableCap.DepthTest);
             else gl.Disable(EnableCap.DepthTest);
         }
-        if (noPrev || prev.DepthFunc != _renderState.DepthFunc)
-            gl.DepthFunc(_renderState.DepthFunc.ToGLDepthFunc());
-        if (noPrev || prev.DepthWriteMask != _renderState.DepthWriteMask)
-            gl.DepthMask(_renderState.DepthWriteMask);
+
+        if (_renderState.EnableDepthTest)
+        {
+            if (noPrev || prev.DepthFunc != _renderState.DepthFunc)
+                gl.DepthFunc(_renderState.DepthFunc.ToGLDepthFunc());
+            if (noPrev || prev.DepthWriteMask != _renderState.DepthWriteMask)
+                gl.DepthMask(_renderState.DepthWriteMask);
+        }
 
         // ---- Stencil ----
         if (noPrev || prev.EnableStencilTest != _renderState.EnableStencilTest)
@@ -86,25 +92,38 @@ internal class GLPipeline
             else gl.Disable(EnableCap.StencilTest);
         }
 
-        if (noPrev || prev.StencilFrontFunc != _renderState.StencilFrontFunc || prev.StencilFrontRef != _renderState.StencilFrontRef || prev.StencilFrontReadMask != _renderState.StencilFrontReadMask)
-            gl.StencilFuncSeparate(GLEnum.Front, _renderState.StencilFrontFunc.ToGLStencilFunc(), _renderState.StencilFrontRef, _renderState.StencilFrontReadMask);
-        if (noPrev || prev.StencilFrontFailOp != _renderState.StencilFrontFailOp || prev.StencilFrontDepthFailOp != _renderState.StencilFrontDepthFailOp || prev.StencilFrontPassOp != _renderState.StencilFrontPassOp)
-            gl.StencilOpSeparate(GLEnum.Front, _renderState.StencilFrontFailOp.ToGLStencilOp(), _renderState.StencilFrontDepthFailOp.ToGLStencilOp(), _renderState.StencilFrontPassOp.ToGLStencilOp());
-        if (noPrev || prev.StencilFrontWriteMask != _renderState.StencilFrontWriteMask)
-            gl.StencilMaskSeparate(GLEnum.Front, _renderState.StencilFrontWriteMask);
+        if (_renderState.EnableStencilTest)
+        {
+            if (noPrev || prev.StencilFrontFunc != _renderState.StencilFrontFunc || prev.StencilFrontRef != _renderState.StencilFrontRef || prev.StencilFrontReadMask != _renderState.StencilFrontReadMask)
+                gl.StencilFuncSeparate(GLEnum.Front, _renderState.StencilFrontFunc.ToGLStencilFunc(), _renderState.StencilFrontRef, _renderState.StencilFrontReadMask);
+            if (noPrev || prev.StencilFrontFailOp != _renderState.StencilFrontFailOp || prev.StencilFrontDepthFailOp != _renderState.StencilFrontDepthFailOp || prev.StencilFrontPassOp != _renderState.StencilFrontPassOp)
+                gl.StencilOpSeparate(GLEnum.Front, _renderState.StencilFrontFailOp.ToGLStencilOp(), _renderState.StencilFrontDepthFailOp.ToGLStencilOp(), _renderState.StencilFrontPassOp.ToGLStencilOp());
+            if (noPrev || prev.StencilFrontWriteMask != _renderState.StencilFrontWriteMask)
+                gl.StencilMaskSeparate(GLEnum.Front, _renderState.StencilFrontWriteMask);
 
-        if (noPrev || prev.StencilBackFunc != _renderState.StencilBackFunc || prev.StencilBackRef != _renderState.StencilBackRef || prev.StencilBackReadMask != _renderState.StencilBackReadMask)
-            gl.StencilFuncSeparate(GLEnum.Back, _renderState.StencilBackFunc.ToGLStencilFunc(), _renderState.StencilBackRef, _renderState.StencilBackReadMask);
-        if (noPrev || prev.StencilBackFailOp != _renderState.StencilBackFailOp || prev.StencilBackDepthFailOp != _renderState.StencilBackDepthFailOp || prev.StencilBackPassOp != _renderState.StencilBackPassOp)
-            gl.StencilOpSeparate(GLEnum.Back, _renderState.StencilBackFailOp.ToGLStencilOp(), _renderState.StencilBackDepthFailOp.ToGLStencilOp(), _renderState.StencilBackPassOp.ToGLStencilOp());
-        if (noPrev || prev.StencilBackWriteMask != _renderState.StencilBackWriteMask)
-            gl.StencilMaskSeparate(GLEnum.Back, _renderState.StencilBackWriteMask);
+            if (noPrev || prev.StencilBackFunc != _renderState.StencilBackFunc || prev.StencilBackRef != _renderState.StencilBackRef || prev.StencilBackReadMask != _renderState.StencilBackReadMask)
+                gl.StencilFuncSeparate(GLEnum.Back, _renderState.StencilBackFunc.ToGLStencilFunc(), _renderState.StencilBackRef, _renderState.StencilBackReadMask);
+            if (noPrev || prev.StencilBackFailOp != _renderState.StencilBackFailOp || prev.StencilBackDepthFailOp != _renderState.StencilBackDepthFailOp || prev.StencilBackPassOp != _renderState.StencilBackPassOp)
+                gl.StencilOpSeparate(GLEnum.Back, _renderState.StencilBackFailOp.ToGLStencilOp(), _renderState.StencilBackDepthFailOp.ToGLStencilOp(), _renderState.StencilBackPassOp.ToGLStencilOp());
+            if (noPrev || prev.StencilBackWriteMask != _renderState.StencilBackWriteMask)
+                gl.StencilMaskSeparate(GLEnum.Back, _renderState.StencilBackWriteMask);
+        }
+
+        if (noPrev || prev.EnableBlend != _renderState.EnableBlend)
+        {
+            if (_renderState.EnableBlend) gl.Enable(EnableCap.Blend);
+            else gl.Disable(EnableCap.Blend);
+        }
 
         // ---- Blending ----
-        if (noPrev || prev.BlendEquationRgb != _renderState.BlendEquationRgb || prev.BlendEquationAlpha != _renderState.BlendEquationAlpha)
-            gl.BlendEquationSeparate(_renderState.BlendEquationRgb.ToGLBlendEquation(), _renderState.BlendEquationAlpha.ToGLBlendEquation());
-        if (noPrev || prev.BlendSrcRgb != _renderState.BlendSrcRgb || prev.BlendDstRgb != _renderState.BlendDstRgb || prev.BlendSrcAlpha != _renderState.BlendSrcAlpha || prev.BlendDstAlpha != _renderState.BlendDstAlpha)
-            gl.BlendFuncSeparate(_renderState.BlendSrcRgb.ToGLBlendFactor(), _renderState.BlendDstRgb.ToGLBlendFactor(), _renderState.BlendSrcAlpha.ToGLBlendFactor(), _renderState.BlendDstAlpha.ToGLBlendFactor());
+
+        if (_renderState.EnableBlend)
+        {
+            if (noPrev || prev.BlendEquationRgb != _renderState.BlendEquationRgb || prev.BlendEquationAlpha != _renderState.BlendEquationAlpha)
+                gl.BlendEquationSeparate(_renderState.BlendEquationRgb.ToGLBlendEquation(), _renderState.BlendEquationAlpha.ToGLBlendEquation());
+            if (noPrev || prev.BlendSrcRgb != _renderState.BlendSrcRgb || prev.BlendDstRgb != _renderState.BlendDstRgb || prev.BlendSrcAlpha != _renderState.BlendSrcAlpha || prev.BlendDstAlpha != _renderState.BlendDstAlpha)
+                gl.BlendFuncSeparate(_renderState.BlendSrcRgb.ToGLBlendFactor(), _renderState.BlendDstRgb.ToGLBlendFactor(), _renderState.BlendSrcAlpha.ToGLBlendFactor(), _renderState.BlendDstAlpha.ToGLBlendFactor());
+        }
 
         // ---- Multisampling ----
         if (noPrev || prev.AlphaToMask != _renderState.AlphaToMask)
@@ -114,8 +133,12 @@ internal class GLPipeline
         }
 
         // ---- Color Write Mask ----
-        if (noPrev || prev.ColorMaskR != _renderState.ColorMaskR || prev.ColorMaskG != _renderState.ColorMaskG || prev.ColorMaskB != _renderState.ColorMaskB || prev.ColorMaskA != _renderState.ColorMaskA)
-            gl.ColorMask(_renderState.ColorMaskR, _renderState.ColorMaskG, _renderState.ColorMaskB, _renderState.ColorMaskA);
+        if (noPrev || prev.WriteMask != _renderState.WriteMask)
+            gl.ColorMask(
+                _renderState.WriteMask.HasFlag(ColorWriteMask.R),
+                _renderState.WriteMask.HasFlag(ColorWriteMask.G),
+                _renderState.WriteMask.HasFlag(ColorWriteMask.B),
+                _renderState.WriteMask.HasFlag(ColorWriteMask.A));
     }
 
 

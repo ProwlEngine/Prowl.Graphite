@@ -10,7 +10,7 @@ namespace Prowl.Graphite.OpenGL;
 
 internal struct SetRenderTarget : GLCommand
 {
-    public GLRenderTexture? Target;
+    public GLRenderTarget? Target;
 
 
     public void Execute(GLDispatcher dispatcher, GL gl)

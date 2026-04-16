@@ -29,8 +29,8 @@ internal unsafe struct SetBufferData<T> : GLCommand where T : unmanaged
         }
         else if (SourceData != null)
         {
-            fixed (T* dataPtr = SourceData.Value.Span)
-                Destination.SetBufferDataCore(gl, dataPtr, SourceIndex, DestinationIndex, Count);
+            fixed (T* dataPtr = SourceData.Value.Span.Slice(SourceIndex))
+                Destination.SetBufferDataCore(gl, dataPtr, DestinationIndex, Count);
         }
         else
         {

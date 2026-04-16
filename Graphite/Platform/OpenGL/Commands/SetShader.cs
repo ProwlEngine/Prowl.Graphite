@@ -4,18 +4,19 @@ using Prowl.Vector;
 using System;
 using System.Threading;
 
+using System.Linq;
+
 
 namespace Prowl.Graphite.OpenGL;
 
 
-internal unsafe struct DrawMesh : GLCommand
+internal struct SetShader : GLCommand
 {
-    public GLMesh Mesh;
-    public GLMaterial Material;
+    public GLShaderData ShaderData;
 
 
     public void Execute(GLDispatcher dispatcher, GL gl)
     {
-
+        GLPipeline.GetPipeline(ShaderData).ApplyRenderState(dispatcher, gl);
     }
 }

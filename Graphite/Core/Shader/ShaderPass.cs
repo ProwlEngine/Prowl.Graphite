@@ -11,24 +11,38 @@ namespace Prowl.Graphite;
 
 public sealed class ShaderPass
 {
-    public string Name;
-    public Dictionary<string, string> Tags;
-    public Dictionary<GraphicsBackend, ShaderData> ShaderData;
+    public readonly string Name;
+
+    public readonly ShaderPassState State;
+
+    private Dictionary<string, string> _tags;
+    private Dictionary<GraphicsBackend, ShaderData> _shaderData;
 
 
     public ShaderPass(string name, Dictionary<string, string> tags, Dictionary<GraphicsBackend, ShaderData> shaderData)
     {
         Name = name;
-        Tags = tags ?? [];
-        ShaderData = shaderData;
+        _tags = tags ?? [];
+        _shaderData = shaderData;
     }
 
 
     public bool HasTag(string tag, string? tagValue = null)
     {
-        if (Tags.TryGetValue(tag, out string? value))
+        if (_tags.TryGetValue(tag, out string? value))
             return tagValue == null || value == tagValue;
 
         return false;
+    }
+
+
+    public bool GetBackend(GraphicsBackend backend, out ShaderData? data)
+    {
+        bool hasValue = _shaderData.TryGetValue(backend, out data);
+
+        if (data != null)
+            data!.Pass = this;
+
+        return hasValue;
     }
 }

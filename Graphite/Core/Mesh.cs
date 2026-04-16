@@ -7,7 +7,7 @@ using Prowl.Vector;
 namespace Prowl.Graphite;
 
 
-public abstract class Mesh
+public abstract class Mesh : IDisposable
 {
     public static Mesh Create(MeshCreateInfo? createInfo = null, GraphicsDevice? device = null)
     {
@@ -20,10 +20,17 @@ public abstract class Mesh
         };
     }
 
+    public abstract MeshTopology Topology { get; set; }
+
+    public abstract VertexInputDescriptor[] InputLayout { get; }
+
     public abstract bool IsReadable { get; set; }
 
     public abstract void SetVertexInput<T>(Span<T> buffer, int stream) where T : unmanaged;
     public abstract T[] GetVertexInput<T>(int stream) where T : unmanaged;
+
+
+
 
     public abstract bool Has32BitIndices { get; }
 
@@ -33,7 +40,7 @@ public abstract class Mesh
     public abstract uint[] GetIndexInput32();
     public abstract ushort[] GetIndexInput16();
 
-    public abstract void SetInputLayout(IEnumerable<VertexInputDescriptor> layout);
+    public abstract void Dispose();
 }
 
 
@@ -47,9 +54,13 @@ public struct MeshCreateInfo
             new VertexInputDescriptor("TANGENT", VertexInputFormat.Float3),
             new VertexInputDescriptor("UV0", VertexInputFormat.Float4),
             new VertexInputDescriptor("UV1", VertexInputFormat.Float4),
-            new VertexInputDescriptor("UV2", VertexInputFormat.Float4),
-        ]
+            new VertexInputDescriptor("UV2", VertexInputFormat.Float4)
+        ],
+
+        Topology = MeshTopology.Triangles
     };
 
     public VertexInputDescriptor[] VertexLayout;
+
+    public MeshTopology Topology;
 }

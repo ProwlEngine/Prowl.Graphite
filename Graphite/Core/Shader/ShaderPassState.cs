@@ -3,7 +3,7 @@ using System;
 namespace Prowl.Graphite;
 
 
-public struct ShaderPassState
+public class ShaderPassState
 {
     public bool EnableCulling;
     public CullFace CullFace;
@@ -15,9 +15,10 @@ public struct ShaderPassState
 
     // -------------------- Depth --------------------
 
-    public bool EnableDepthTest;
+    public bool EnableDepthTest => DepthFunc != DepthFunc.Disabled;
     public DepthFunc DepthFunc;
     public bool DepthWriteMask;
+    public bool EnableDepthClamp;
 
     // -------------------- Stencil --------------------
 
@@ -54,4 +55,24 @@ public struct ShaderPassState
 
     // -------------------- Color Write Mask --------------------
     public ColorWriteMask WriteMask;
+
+
+
+    public static ShaderPassState Default() =>
+    new()
+    {
+        EnableCulling = true,
+        CullFace = CullFace.Back,
+        FrontFace = FrontFace.Clockwise,
+        EnablePolygonOffsetFill = false,
+        PolygonOffsetFactor = 1,
+        PolygonOffsetUnits = 1,
+        DepthFunc = DepthFunc.LessEqual,
+        DepthWriteMask = true,
+        EnableDepthClamp = false,
+        EnableStencilTest = false,
+        EnableBlend = false,
+        AlphaToMask = false,
+        WriteMask = ColorWriteMask.All,
+    };
 }

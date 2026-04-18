@@ -51,6 +51,7 @@ public enum BlendEquation
 
 public enum DepthFunc
 {
+    Disabled,
     Never,
     Less,
     Equal,
@@ -109,20 +110,9 @@ public enum LogicOp
 public enum ColorWriteMask
 {
     None = 0,
+    All = R | G | B | A,
     R = 1 << 0,
     G = 1 << 1,
     B = 1 << 2,
     A = 1 << 3,
 }
-
-// --- Sample coverage ---
-// float + bool; no dedicated enum needed.
-
-// --- Polygon Offset ---
-// floats only; no dedicated enum needed.
-
-// --- Line / Point size ---
-// floats only; no dedicated enum needed.
-
-// --- Draw buffers (for color mask per-buffer, etc.) ---
-// Represented as arrays/bitfields inline.

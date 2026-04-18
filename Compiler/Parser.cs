@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 using Prowl.Vector;
 
@@ -9,6 +10,7 @@ using Superpower;
 using Superpower.Parsers;
 using Superpower.Tokenizers;
 using Superpower.Display;
+using Superpower.Model;
 
 
 namespace Prowl.Graphite;
@@ -18,30 +20,8 @@ public static class ShaderParser
 {
     public enum ShaderToken
     {
-        // Shader block tokens
-        Shader,
-        Fallback,
-        Properties,
-        Pass,
-
-        // Pass block tokens
-        Name,
-        Tags,
-
         HlslInclude,
         HlslProgram,
-
-        // Shader property tokens
-        PropInt,
-        PropFloat,
-        PropVector,
-        PropColor,
-        PropMatrix,
-        PropTex2D,
-        PropTex3D,
-        PropTex2DArray,
-        PropTexCube,
-        PropTexCubemapArray,
 
         // Simple token types
         Identifier,
@@ -57,7 +37,6 @@ public static class ShaderParser
 
         // Digit token types
         Decimal,
-        Integer,
     }
 
 
@@ -76,16 +55,6 @@ public static class ShaderParser
             // String literal
             .Match(Span.Regex("\".*?\""), ShaderToken.String)
 
-            // Shader block tokens
-            .Match(Span.EqualTo("Shader"), ShaderToken.Shader)
-            .Match(Span.EqualTo("Properties"), ShaderToken.Properties)
-            .Match(Span.EqualTo("Pass"), ShaderToken.Pass)
-            .Match(Span.EqualTo("Fallback"), ShaderToken.Fallback)
-
-            // Pass block tokens
-            .Match(Span.EqualTo("Name"), ShaderToken.Name)
-            .Match(Span.EqualTo("Tags"), ShaderToken.Tags)
-
             // HLSL blocks
             .Match(
                 Span.Regex(@"HLSLINCLUDE[\s\S]*?ENDHLSL"),
@@ -96,18 +65,6 @@ public static class ShaderParser
                 ShaderToken.HlslProgram
             )
 
-            // Property tokens
-            .Match(Span.EqualTo("Integer"), ShaderToken.PropInt)
-            .Match(Span.EqualTo("Float"), ShaderToken.PropFloat)
-            .Match(Span.EqualTo("Vector"), ShaderToken.PropVector)
-            .Match(Span.EqualTo("Color"), ShaderToken.PropColor)
-            .Match(Span.EqualTo("Matrix"), ShaderToken.PropMatrix)
-            .Match(Span.EqualTo("2DArray"), ShaderToken.PropTex2DArray)
-            .Match(Span.EqualTo("2D"), ShaderToken.PropTex2D)
-            .Match(Span.EqualTo("3D"), ShaderToken.PropTex3D)
-            .Match(Span.EqualTo("CubeArray"), ShaderToken.PropTexCubemapArray)
-            .Match(Span.EqualTo("Cube"), ShaderToken.PropTexCube)
-
             .Match(Identifier.CStyle, ShaderToken.Identifier)
 
             // Numbers
@@ -115,17 +72,73 @@ public static class ShaderParser
 
             .Build();
 
+
+    // ---------------------- Exception Generators ----------------------
+
+
+    public static ParseException Expected(string expected, string found, Position position) =>
+        new ParseException($"Expected '{expected}' but found '{found}'", position);
+
+
+    public static ParseException ExpectedAny(IEnumerable<string> expected, string found, Position position) =>
+        new ParseException($"Expected any of '{string.Join(", ", expected)}' but got '{found}'", position);
+
+
+    // ---------------------- Token Validators ----------------------
+
+
+    public static TokenListParser<ShaderToken, Token<ShaderToken>> Keyword(string expected, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        return Token.EqualTo(ShaderToken.Identifier)
+            .Where(t =>
+                t.ToStringValue().Equals(expected, comparison));
+    }
+
+
+    public static TokenListParser<ShaderToken, Token<ShaderToken>> RequiredKeyword(string expected, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        return Token.EqualTo(ShaderToken.Identifier)
+            .Where(token =>
+            {
+                string value = token.ToStringValue();
+
+                if (value.Equals(expected, comparison))
+                    return true;
+
+                throw Expected(expected, value, token.Position);
+            });
+    }
+
+
+    public static TokenListParser<ShaderToken, T> Keywords<T>(Dictionary<string, T> values) =>
+        Token.EqualTo(ShaderToken.Identifier).Select(token =>
+            {
+                var value = token.ToStringValue();
+
+                if (values.TryGetValue(value, out T? result))
+                    return result;
+
+                throw ExpectedAny(values.Keys, value, token.Position);
+            });
+
+
+    // ---------------------- Primitive Type Parsers ----------------------
+
+
     static TokenListParser<ShaderToken, string> QuotedString =
         Token.EqualTo(ShaderToken.String)
             .Select(x => x.ToStringValue().Trim('"'));
+
 
     static TokenListParser<ShaderToken, int> Integer =
         Token.EqualTo(ShaderToken.Decimal)
             .Select(x => int.Parse(x.ToStringValue()));
 
+
     static TokenListParser<ShaderToken, float> Float =
     Token.EqualTo(ShaderToken.Decimal)
          .Select(x => float.Parse(x.ToStringValue()));
+
 
     static TokenListParser<ShaderToken, Float4> Vector =
         from _open in Token.EqualTo(ShaderToken.OpenParen)
@@ -139,6 +152,7 @@ public static class ShaderParser
         from _close in Token.EqualTo(ShaderToken.CloseParen)
         select new Float4(x, y, z, w);
 
+
     static TokenListParser<ShaderToken, Float4x4> Matrix =
         from _open in Token.EqualTo(ShaderToken.OpenParen)
         from x in Vector
@@ -148,38 +162,45 @@ public static class ShaderParser
         from _close in Token.EqualTo(ShaderToken.CloseParen)
         select new Float4x4(x, y, z, w);
 
+
     static TokenListParser<ShaderToken, string> Texture =
         from name in QuotedString
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
         select name;
 
+
     // ---------------------- Shader Scope ----------------------
 
+
     static TokenListParser<ShaderToken, string> ShaderName =
-        from _shader in Token.EqualTo(ShaderToken.Shader)
+        from _shader in RequiredKeyword("Shader")
         from name in QuotedString
         select name;
+
 
     static TokenListParser<ShaderToken, string> Fallback =
-        from _shader in Token.EqualTo(ShaderToken.Fallback)
+        from _fallback in Keyword("Fallback")
         from name in QuotedString
         select name;
 
-    static TokenListParser<ShaderToken, HlslBlock> IncludeBlock =
+
+    static TokenListParser<ShaderToken, HlslBlock?> IncludeBlock =
         Token.EqualTo(ShaderToken.HlslInclude)
-            .Select(t => new HlslBlock
+            .Select(t => (HlslBlock?)new HlslBlock
             {
-                Code = t.ToStringValue().Replace("HLSLINCLUDE", "").Replace("ENDHLSL", "").Trim(),
+                Code = t.ToStringValue()["HLSLINCLUDE".Length..^"ENDHLSL".Length].Trim(),
                 StartLine = t.Position.Line
-            });
+            })
+            .OptionalOrDefault();
+
 
     static TokenListParser<ShaderToken, ParsedShader> Shader =
         from name in ShaderName
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
-        from props in PropertiesBlock.OptionalOrDefault()
-        from include in IncludeBlock.OptionalOrDefault()
-        from passes in PassBlock.Many()
+        from props in PropertiesBlock!.OptionalOrDefault()
+        from include in IncludeBlock
+        from passes in PassBlock!.Many()
         from fallback in Fallback
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
         select new ParsedShader
@@ -191,19 +212,13 @@ public static class ShaderParser
             Fallback = fallback,
         };
 
+
     // ---------------------- Property Block ----------------------
 
-    static TokenListParser<ShaderToken, ShaderPropertyType> PropertyType =
-        Token.EqualTo(ShaderToken.PropInt).Value(ShaderPropertyType.Integer)
-        .Or(Token.EqualTo(ShaderToken.PropFloat).Value(ShaderPropertyType.Float))
-        .Or(Token.EqualTo(ShaderToken.PropVector).Value(ShaderPropertyType.Vector))
-        .Or(Token.EqualTo(ShaderToken.PropColor).Value(ShaderPropertyType.Color))
-        .Or(Token.EqualTo(ShaderToken.PropMatrix).Value(ShaderPropertyType.Matrix))
-        .Or(Token.EqualTo(ShaderToken.PropTex2D).Value(ShaderPropertyType.Texture2D))
-        .Or(Token.EqualTo(ShaderToken.PropTex3D).Value(ShaderPropertyType.Texture3D))
-        .Or(Token.EqualTo(ShaderToken.PropTex2DArray).Value(ShaderPropertyType.Texture2DArray))
-        .Or(Token.EqualTo(ShaderToken.PropTexCube).Value(ShaderPropertyType.TextureCubemap))
-        .Or(Token.EqualTo(ShaderToken.PropTexCubemapArray).Value(ShaderPropertyType.TextureCubemapArray));
+
+    static Dictionary<string, ShaderPropertyType> PropertyType =
+        Enum.GetValues<ShaderPropertyType>().ToDictionary(x => Enum.GetName(x)!);
+
 
     static TokenListParser<ShaderToken, object> PropertyValue(ShaderPropertyType type)
     {
@@ -220,10 +235,10 @@ public static class ShaderParser
             ShaderPropertyType.TextureCubemap or
             ShaderPropertyType.TextureCubemapArray => Texture.Select(x => (object)x),
 
-
             _ => throw new NotSupportedException($"Unsupported type {type}")
         };
     }
+
 
     // Parses a single property
     static TokenListParser<ShaderToken, ShaderProperty> Property =
@@ -233,7 +248,7 @@ public static class ShaderParser
         from _open in Token.EqualTo(ShaderToken.OpenParen)
         from display in QuotedString
         from _separator in Token.EqualTo(ShaderToken.Comma)
-        from type in PropertyType
+        from type in Keywords(PropertyType)
         from _close in Token.EqualTo(ShaderToken.CloseParen)
 
         from value in
@@ -268,20 +283,24 @@ public static class ShaderParser
             }
         };
 
+
     // Parses a property block
     static TokenListParser<ShaderToken, ShaderProperty[]?> PropertiesBlock =
-        from _props in Token.EqualTo(ShaderToken.Properties)
+        from _props in Keyword("Properties")
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
         from props in Property.Many()
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
         select props;
 
+
     // ---------------------- Pass Block ----------------------
 
+
     static TokenListParser<ShaderToken, string?> PassName =
-        from _shader in Token.EqualTo(ShaderToken.Name)
+        from _shader in Keyword("Name")
         from name in QuotedString
         select name;
+
 
     static TokenListParser<ShaderToken, KeyValuePair<string, string>> PassTag =
         from tagKey in QuotedString
@@ -289,36 +308,273 @@ public static class ShaderParser
         from tagValue in QuotedString
         select new KeyValuePair<string, string>(tagKey, tagValue);
 
+
     static TokenListParser<ShaderToken, Dictionary<string, string>?> PassTags =
-        from _tags in Token.EqualTo(ShaderToken.Tags)
+        from _tags in Keyword("Tags")
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
         from tags in PassTag.Many()
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
         select new Dictionary<string, string>(tags);
 
+
     static TokenListParser<ShaderToken, HlslBlock> HlslBlock =
         Token.EqualTo(ShaderToken.HlslProgram)
             .Select(t => new HlslBlock
             {
-                Code = t.ToStringValue().Replace("HLSLPROGRAM", "").Replace("ENDHLSL", "").Trim(),
+                Code = t.ToStringValue()["HLSLPROGRAM".Length..^"ENDHLSL".Length].Trim(),
                 StartLine = t.Position.Line
             });
 
+
     // Parses a pass block
     static TokenListParser<ShaderToken, ParsedPass> PassBlock =
-        from _props in Token.EqualTo(ShaderToken.Pass)
+        from _props in Keyword("Pass")
         from index in Integer.OptionalOrDefault(-1)
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
         from name in PassName.OptionalOrDefault()
         from tags in PassTags.OptionalOrDefault()
+        from state in RenderStateCommands!.Many()
         from program in HlslBlock
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
-        select new ParsedPass
+
+        select new ParsedPass(ApplyRenderState(ShaderPassState.Default(), state), program)
         {
             Name = name,
-            Program = program,
-            Tags = tags
+            Tags = tags,
         };
+
+
+    // ---------------------- Render State Commands ----------------------
+
+
+    static Dictionary<string, bool> OnState = new()
+    {
+        { "On", true },
+        { "Off", false }
+    };
+
+
+    static Dictionary<string, CullFace> CullState = new()
+    {
+        { "Back", CullFace.Back },
+        { "Front", CullFace.Front },
+        { "Off", 0 }
+    };
+
+
+    static Dictionary<string, DepthFunc> ZTestState =
+        Enum.GetValues<DepthFunc>().ToDictionary(x => Enum.GetName(x)!);
+
+
+    static Dictionary<string, BlendEquation> BlendEquations =
+        Enum.GetValues<BlendEquation>().ToDictionary(x => Enum.GetName(x)!);
+
+
+    static Dictionary<string, StencilOp> StencilOperations =
+        Enum.GetValues<StencilOp>().ToDictionary(x => Enum.GetName(x)!);
+
+
+    static Dictionary<string, StencilFunc> StencilFunctions =
+        Enum.GetValues<StencilFunc>().ToDictionary(x => Enum.GetName(x)!);
+
+
+    static Dictionary<string, BlendFactor> BlendFactors =
+        Enum.GetValues<BlendFactor>().ToDictionary(x => Enum.GetName(x)!);
+
+
+    static ColorWriteMask ParseMask(Token<ShaderToken> maskToken)
+    {
+        string tokenString = maskToken.ToStringValue();
+
+        ColorWriteMask result = 0;
+
+        foreach (char c in tokenString)
+        {
+            result |= c switch
+            {
+                'R' => ColorWriteMask.R,
+                'G' => ColorWriteMask.G,
+                'B' => ColorWriteMask.B,
+                'A' => ColorWriteMask.A,
+                _ => throw new ParseException($"Invalid channel {c}. Expected any of [R, G, B, A]", maskToken.Position)
+            };
+        }
+
+        return result;
+    }
+
+
+    static TokenListParser<ShaderToken, ColorWriteMask> ColorMaskCommand =
+        from mask in Token.EqualTo(ShaderToken.Identifier)
+        select ParseMask(mask);
+
+
+    static TokenListParser<ShaderToken, (bool, float, float)> OffsetCommand =
+        from factor in Float
+        from units in Float
+        select (true, factor, units);
+
+
+    static Action<ShaderPassState> MakeBlend(BlendFactor? srcRgb, BlendFactor? dstRgb, BlendFactor? srcA, BlendFactor? dstA)
+    {
+        return s =>
+        {
+            s.BlendSrcRgb = srcRgb ?? s.BlendSrcRgb;
+            s.BlendDstRgb = dstRgb ?? s.BlendDstRgb;
+            s.BlendSrcAlpha = srcA ?? s.BlendSrcAlpha;
+            s.BlendDstAlpha = dstA ?? s.BlendDstAlpha;
+        };
+    }
+
+
+    static TokenListParser<ShaderToken, Action<ShaderPassState>> BlendCommand =
+        from src in Keywords(BlendFactors)
+        from dst in Keywords(BlendFactors)
+        select MakeBlend(src, dst, src, dst);
+
+
+    static TokenListParser<ShaderToken, Action<ShaderPassState>> BlendRGBCommand =
+        from srcRgb in Keywords(BlendFactors)
+        from dstRgb in Keywords(BlendFactors)
+        select MakeBlend(srcRgb, dstRgb, null, null);
+
+
+    static TokenListParser<ShaderToken, Action<ShaderPassState>> BlendAlphaCommand =
+        from srcA in Keywords(BlendFactors)
+        from dstA in Keywords(BlendFactors)
+        select MakeBlend(null, null, srcA, dstA);
+
+
+    static TokenListParser<ShaderToken, Action<ShaderPassState>> StencilCommand =
+        from _open in Token.EqualTo(ShaderToken.OpenBrace)
+        from stencilCommands in StencilCommands!.Many()
+        from _close in Token.EqualTo(ShaderToken.CloseBrace)
+        select (Action<ShaderPassState>)(x => ApplyRenderState(x, stencilCommands));
+
+
+    static readonly Dictionary<string, TokenListParser<ShaderToken, Action<ShaderPassState>>> CommandMap = new()
+    {
+        ["AlphaToMask"] = Keywords(OnState)
+            .Select(v => (Action<ShaderPassState>)(s => s.AlphaToMask = v)),
+
+        ["BlendOp"] = Keywords(BlendEquations)
+            .Select(v => (Action<ShaderPassState>)(s =>
+            {
+                s.BlendEquationRgb = v;
+                s.BlendEquationAlpha = v;
+            })),
+
+        ["Cull"] = Keywords(CullState)
+            .Select(v => (Action<ShaderPassState>)(s => s.CullFace = v)),
+
+        ["ZClip"] = Keywords(OnState)
+            .Select(v => (Action<ShaderPassState>)(s => s.EnableDepthClamp = !v)),
+
+        ["ZTest"] = Keywords(ZTestState)
+            .Select(v => (Action<ShaderPassState>)(s => s.DepthFunc = v)),
+
+        ["ZWrite"] = Keywords(OnState)
+            .Select(v => (Action<ShaderPassState>)(s => s.DepthWriteMask = v)),
+
+        ["ColorMask"] = ColorMaskCommand
+            .Select(v => (Action<ShaderPassState>)(s => s.WriteMask = v)),
+
+        ["Offset"] = OffsetCommand
+            .Select(v => (Action<ShaderPassState>)(s =>
+            {
+                s.EnablePolygonOffsetFill = v.Item1;
+                s.PolygonOffsetFactor = v.Item2;
+                s.PolygonOffsetUnits = v.Item3;
+            })),
+
+        ["Blend"] = BlendCommand,
+        ["BlendRGB"] = BlendRGBCommand,
+        ["BlendAlpha"] = BlendAlphaCommand,
+
+        ["Stencil"] = StencilCommand
+    };
+
+
+    static TokenListParser<ShaderToken, Action<ShaderPassState>> RenderStateCommands =
+        from id in Token.EqualTo(ShaderToken.Identifier)
+            .Select(x =>
+            {
+                string value = x.ToStringValue();
+
+                if (!CommandMap.ContainsKey(value))
+                    throw ExpectedAny(CommandMap.Keys, value, x.Position);
+
+                return value;
+            })
+        from cmd in CommandMap[id]
+        select cmd;
+
+
+    static ShaderPassState ApplyRenderState(ShaderPassState state, IEnumerable<Action<ShaderPassState>> stateCommands)
+    {
+        foreach (Action<ShaderPassState> stateCommand in stateCommands)
+            stateCommand.Invoke(state);
+
+        return state;
+    }
+
+
+    static readonly Dictionary<string, TokenListParser<ShaderToken, Action<ShaderPassState>>> StencilCommandMap = new()
+    {
+        ["Ref"] = Integer
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackRef = v; s.StencilFrontRef = v; })),
+
+        ["ReadMask"] = Integer
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackReadMask = (uint)v; s.StencilFrontReadMask = (uint)v; })),
+        ["WriteMask"] = Integer
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackWriteMask = (uint)v; s.StencilFrontWriteMask = (uint)v; })),
+
+        ["Comp"] = Keywords(StencilFunctions)
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackFunc = v; s.StencilFrontFunc = v; })),
+        ["CompBack"] = Keywords(StencilFunctions)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilBackFunc = v)),
+        ["CompFront"] = Keywords(StencilFunctions)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilFrontFunc = v)),
+
+        ["Pass"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackPassOp = v; s.StencilFrontPassOp = v; })),
+        ["PassBack"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilBackPassOp = v)),
+        ["PassFront"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilFrontPassOp = v)),
+
+        ["Fail"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackFailOp = v; s.StencilFrontFailOp = v; })),
+        ["FailFront"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilFrontFailOp = v)),
+        ["FailBack"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilBackFailOp = v)),
+
+        ["ZFail"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => { s.StencilBackDepthFailOp = v; s.StencilFrontDepthFailOp = v; })),
+        ["ZFailBack"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilBackDepthFailOp = v)),
+        ["ZFailFront"] = Keywords(StencilOperations)
+            .Select(v => (Action<ShaderPassState>)(s => s.StencilFrontDepthFailOp = v)),
+    };
+
+
+    static TokenListParser<ShaderToken, Action<ShaderPassState>> StencilCommands =
+        from id in Token.EqualTo(ShaderToken.Identifier)
+            .Select(x =>
+            {
+                string value = x.ToStringValue();
+
+                if (!StencilCommandMap.ContainsKey(value))
+                    throw ExpectedAny(CommandMap.Keys, value, x.Position);
+
+                return value;
+            })
+        from cmd in StencilCommandMap[id]
+        select cmd;
+
+
+    // ---------------------- Main Parser ----------------------
 
 
     public static ParsedShader Parse(string input)
@@ -342,7 +598,7 @@ public class ParsedShader
     public string? Name;
     public string? Fallback;
 
-    public HlslBlock GlobalInclude;
+    public HlslBlock? GlobalInclude;
 
     public ShaderProperty[]? Properties;
     public ParsedPass[]? Passes;
@@ -353,10 +609,18 @@ public class ParsedPass
 {
     public string Name = "";
 
-    public Dictionary<string, string>? Tags;
+    public Dictionary<string, string>? Tags = null;
+
     public ShaderPassState State;
 
     public HlslBlock Program;
+
+
+    public ParsedPass(ShaderPassState state, HlslBlock program)
+    {
+        State = state;
+        Program = program;
+    }
 }
 
 

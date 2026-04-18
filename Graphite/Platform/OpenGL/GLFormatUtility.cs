@@ -71,6 +71,7 @@ public static class GLFormatUtility
         DepthFunc.NotEqual => DepthFunction.Notequal,
         DepthFunc.GreaterEqual => DepthFunction.Gequal,
         DepthFunc.Always => DepthFunction.Always,
+        DepthFunc.Disabled => throw new Exception("Flag 'Disabled' cannot be converted to GL depth function"),
         _ => DepthFunction.Less,
     };
 

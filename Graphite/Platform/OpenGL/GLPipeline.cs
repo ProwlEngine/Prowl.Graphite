@@ -85,6 +85,12 @@ internal class GLPipeline
                 gl.DepthMask(_renderState.DepthWriteMask);
         }
 
+        if (noPrev || prev.EnableDepthClamp != _renderState.EnableDepthClamp)
+        {
+            if (_renderState.EnableDepthClamp) gl.Enable(EnableCap.DepthClamp);
+            else gl.Disable(EnableCap.DepthClamp);
+        }
+
         // ---- Stencil ----
         if (noPrev || prev.EnableStencilTest != _renderState.EnableStencilTest)
         {

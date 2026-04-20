@@ -3,7 +3,7 @@ using System;
 namespace Prowl.Graphite;
 
 
-public class ShaderPassState
+public struct ShaderPassState
 {
     public bool EnableCulling;
     public CullFace CullFace;
@@ -58,7 +58,7 @@ public class ShaderPassState
 
 
 
-    public static ShaderPassState Default() =>
+    public static ShaderPassState Default =
     new()
     {
         EnableCulling = true,

@@ -412,7 +412,7 @@ public static class ShaderParser
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
         from name in PassName.OptionalOrDefault()
         from tags in PassTags.OptionalOrDefault()
-        from state in RenderState
+        from state in RenderState!
         from program in HlslBlock
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
         select new ParsedPass(state, program)

@@ -35,8 +35,6 @@ public static class ShaderParser
 
         // Digit token types
         Decimal,
-
-        Pragma,
     }
 
 
@@ -59,21 +57,6 @@ public static class ShaderParser
         from ___ in Character.EqualTo('*')
         from ____ in Character.EqualTo('/')
         select Unit.Value;
-
-
-    // For pragmas, newline token must be preserved to read the end of a pragma def
-    public static TextParser<TextSpan> WhiteSpaceWithoutNewline = input =>
-    {
-        Result<char> next = input.ConsumeChar();
-        while (next.HasValue && char.IsWhiteSpace(next.Value) && next.Value != '\n' && next.Value != '\r')
-        {
-            next = next.Remainder.ConsumeChar();
-        }
-
-        return next.Location == input ?
-            Result.Empty<TextSpan>(input) :
-            Result.Value(input.Until(next.Location), input, next.Location);
-    };
 
 
     // Tokenizes the top-level ShaderLab-inspired synax of a shader
@@ -111,25 +94,6 @@ public static class ShaderParser
 
             .Build();
 
-
-    // Tokenizes HLSL code to read #pragma blocks
-    public static Tokenizer<ShaderToken> PragmaTokenizer { get; } =
-    new TokenizerBuilder<ShaderToken>()
-        .Ignore(WhiteSpaceWithoutNewline)
-        .Ignore(SingleLineComment)
-        .Ignore(MultiLineComment)
-
-        .Match(Span.EqualTo("#pragma"), ShaderToken.Pragma)
-
-        .Match(Identifier.CStyle, ShaderToken.Identifier)
-
-        .Match(Span.EqualTo("\r\n"), ShaderToken.NewLine)
-        .Match(Character.EqualTo('\n'), ShaderToken.NewLine)
-        .Match(Character.EqualTo('\r'), ShaderToken.NewLine)
-
-        .Ignore(Character.AnyChar)
-
-        .Build();
 
     // ---------------------- Primitive Type Parsers ----------------------
 
@@ -254,15 +218,10 @@ public static class ShaderParser
     // Cuts out the HLSLINCLUDE-ENDHLSL block if found
     static TokenListParser<ShaderToken, HLSLBlock?> IncludeBlock =
         Token.EqualTo(ShaderToken.HLSLInclude)
-            .Select(t =>
+            .Select(t => (HLSLBlock?)new HLSLBlock
             {
-                string code = t.ToStringValue()["HLSLINCLUDE".Length..^"ENDHLSL".Length];
-                return (HLSLBlock?)new HLSLBlock
-                {
-                    Code = code,
-                    StartLine = t.Position.Line,
-                    Commands = ParsePragmaCommands(code, t.Position)
-                };
+                Code = t.ToStringValue()["HLSLINCLUDE".Length..^"ENDHLSL".Length],
+                StartLine = t.Position.Line,
             })
             .OptionalOrDefault();
 
@@ -393,15 +352,10 @@ public static class ShaderParser
 
     static TokenListParser<ShaderToken, HLSLBlock> HlslBlock =
         Token.EqualTo(ShaderToken.HLSLProgram)
-            .Select(t =>
+            .Select(t => new HLSLBlock
             {
-                string code = t.ToStringValue()["HLSLPROGRAM".Length..^"ENDHLSL".Length];
-                return new HLSLBlock
-                {
-                    Code = code,
-                    StartLine = t.Position.Line,
-                    Commands = ParsePragmaCommands(code, t.Position)
-                };
+                Code = t.ToStringValue()["HLSLPROGRAM".Length..^"ENDHLSL".Length],
+                StartLine = t.Position.Line,
             });
 
 
@@ -576,37 +530,6 @@ public static class ShaderParser
         select ParsedPassState.FromSeveral(passStates);
 
 
-    // ---------------------- Entry Point Parser ----------------------
-
-
-    static readonly Dictionary<string, TokenListParser<ShaderToken, PragmaCommand>> PragmaCommands = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Vertex"] = from value in Token.EqualTo(ShaderToken.Identifier).Select(x => x.ToStringValue())
-                     select new PragmaCommand() { Type = PragmaType.Vertex, Value = value },
-
-        ["Fragment"] = from value in Token.EqualTo(ShaderToken.Identifier).Select(x => x.ToStringValue())
-                       select new PragmaCommand() { Type = PragmaType.Fragment, Value = value },
-
-        ["Multi_Compile"] = from values in Token.EqualTo(ShaderToken.Identifier).Select(x => x.ToStringValue()).Many()
-                            select new PragmaCommand() { Type = PragmaType.MultiCompile, Values = values },
-    };
-
-
-    static TokenListParser<ShaderToken, PragmaCommand> PragmaCommand =
-        from _pragma in Token.EqualTo(ShaderToken.Pragma)
-        from commandType in MatchCommand(PragmaCommands)
-        from _newline in Token.EqualTo(ShaderToken.NewLine)
-        select commandType;
-
-
-    static TokenListParser<ShaderToken, PragmaCommand[]> PragmaCommandParser =
-        from items in PragmaCommand.Select(x => (PragmaCommand?)x)
-            .Or(Token.EqualTo(ShaderToken.Identifier).Value((PragmaCommand?)null))
-            .Or(Token.EqualTo(ShaderToken.NewLine).Value((PragmaCommand?)null))
-            .Many()
-        select items.Where(x => x != null).Select(x => x!.Value).ToArray();
-
-
     // ---------------------- Main Parser ----------------------
 
 
@@ -616,19 +539,5 @@ public static class ShaderParser
         ParsedShader shader = Shader.Parse(tokens);
 
         return shader;
-    }
-
-
-    private static PragmaCommand[] ParsePragmaCommands(string code, Position codePosition)
-    {
-        try
-        {
-            TokenList<ShaderToken> input = PragmaTokenizer.Tokenize(code);
-            return PragmaCommandParser.Parse(input);
-        }
-        catch (ParseException parse)
-        {
-            throw Exceptions.AdjustException(parse, codePosition);
-        }
     }
 }

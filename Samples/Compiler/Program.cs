@@ -9,7 +9,7 @@ public class Program
 {
     public static void Main()
     {
-        string sourceShader = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Shader.shader"));
+        string sourceShader = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Shaders/Shader.shader"));
 
         System.Diagnostics.Stopwatch stopwatch = new();
         stopwatch.Start();

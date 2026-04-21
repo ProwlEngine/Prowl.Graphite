@@ -10,14 +10,7 @@ public class ParsedPass
 
     public Dictionary<string, string>? Tags = null;
 
-    public ParsedPassState State;
+    public required ParsedPassState State;
 
-    public HLSLBlock Program;
-
-
-    public ParsedPass(ParsedPassState state, HLSLBlock program)
-    {
-        State = state;
-        Program = program;
-    }
+    public required ParsedShaderSource Source;
 }

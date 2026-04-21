@@ -17,9 +17,7 @@ public static class ShaderParser
 {
     public enum ShaderToken
     {
-        HLSLInclude,
-        HLSLProgram,
-
+        ShaderSource,
         // Simple token types
         Identifier,
         String,
@@ -77,16 +75,7 @@ public static class ShaderParser
             // String literal
             .Match(Span.Regex("\".*?\""), ShaderToken.String)
 
-            // HLSL blocks
-            .Match(
-                Span.Regex(@"HLSLINCLUDE[\s\S]*?ENDHLSL"),
-                ShaderToken.HLSLInclude
-            )
-            .Match(
-                Span.Regex(@"HLSLPROGRAM[\s\S]*?ENDHLSL"),
-                ShaderToken.HLSLProgram
-            )
-
+            .Match(Span.EqualTo("ShaderSource"), ShaderToken.ShaderSource)
             .Match(Identifier.CStyle, ShaderToken.Identifier)
 
             // Numbers
@@ -215,24 +204,12 @@ public static class ShaderParser
         select name;
 
 
-    // Cuts out the HLSLINCLUDE-ENDHLSL block if found
-    static TokenListParser<ShaderToken, HLSLBlock?> IncludeBlock =
-        Token.EqualTo(ShaderToken.HLSLInclude)
-            .Select(t => (HLSLBlock?)new HLSLBlock
-            {
-                Code = t.ToStringValue()["HLSLINCLUDE".Length..^"ENDHLSL".Length],
-                StartLine = t.Position.Line,
-            })
-            .OptionalOrDefault();
-
-
     // The main parser for a shader markup language inspired by ShaderLab
     // Contains a property block, global include block, pass block, and a fallback.
     static TokenListParser<ShaderToken, ParsedShader> Shader =
         from name in ShaderName
         from _open in Token.EqualTo(ShaderToken.OpenBrace)
         from props in PropertiesBlock!.OptionalOrDefault()
-        from include in IncludeBlock
         from passes in PassBlock!.Many()
         from fallback in Fallback
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
@@ -241,7 +218,6 @@ public static class ShaderParser
             Name = name,
             Properties = props ?? [],
             Passes = passes ?? [],
-            GlobalInclude = include,
             Fallback = fallback,
         };
 
@@ -350,13 +326,21 @@ public static class ShaderParser
         select new Dictionary<string, string>(tags);
 
 
-    static TokenListParser<ShaderToken, HLSLBlock> HlslBlock =
-        Token.EqualTo(ShaderToken.HLSLProgram)
-            .Select(t => new HLSLBlock
-            {
-                Code = t.ToStringValue()["HLSLPROGRAM".Length..^"ENDHLSL".Length],
-                StartLine = t.Position.Line,
-            });
+    static TokenListParser<ShaderToken, ParsedShaderSource> ShaderSource =
+        from _shaderSource in Token.EqualTo(ShaderToken.ShaderSource)
+        from shaderSource in QuotedString
+        from _open in Token.EqualTo(ShaderToken.OpenBrace)
+        from _vertex in Keyword("Vertex")
+        from vertexEntrypoint in QuotedString
+        from _fragment in Keyword("Fragment")
+        from fragmentEntrypoint in QuotedString
+        from _close in Token.EqualTo(ShaderToken.CloseBrace)
+        select new ParsedShaderSource()
+        {
+            ShaderSourceFile = shaderSource,
+            VertexEntrypoint = vertexEntrypoint,
+            FragmentEntrypoint = fragmentEntrypoint
+        };
 
 
     // Parses a pass block
@@ -367,12 +351,14 @@ public static class ShaderParser
         from name in PassName.OptionalOrDefault()
         from tags in PassTags.OptionalOrDefault()
         from state in RenderState!
-        from program in HlslBlock
+        from source in ShaderSource
         from _close in Token.EqualTo(ShaderToken.CloseBrace)
-        select new ParsedPass(state, program)
+        select new ParsedPass()
         {
             Name = name,
             Tags = tags,
+            State = state,
+            Source = source
         };
 
     // ---------------------- Render State ----------------------

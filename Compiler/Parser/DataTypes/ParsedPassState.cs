@@ -102,6 +102,9 @@ public class ParsedPassState
 
     public static ParsedPassState FromSeveral(ParsedPassState[] others)
     {
+        if (others.Length == 0)
+            return new();
+
         ParsedPassState value = others[0];
 
         for (int i = 1; i < others.Length; i++)

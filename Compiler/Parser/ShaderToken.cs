@@ -1,4 +1,4 @@
-namespace Prowl.Graphite;
+namespace Prowl.Graphite.Compiler.Parser;
 
 
 public enum ShaderToken

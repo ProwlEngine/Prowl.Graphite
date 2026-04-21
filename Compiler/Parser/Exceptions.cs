@@ -4,7 +4,7 @@ using Superpower;
 using Superpower.Model;
 
 
-namespace Prowl.Graphite;
+namespace Prowl.Graphite.Compiler.Parser;
 
 
 public static class Exceptions

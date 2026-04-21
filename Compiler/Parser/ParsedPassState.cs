@@ -5,7 +5,7 @@ using Superpower.Model;
 using Superpower.Parsers;
 
 
-namespace Prowl.Graphite;
+namespace Prowl.Graphite.Compiler.Parser;
 
 
 public class ParsedPassState

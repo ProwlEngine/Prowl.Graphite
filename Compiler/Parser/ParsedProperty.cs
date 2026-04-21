@@ -6,7 +6,7 @@ using Superpower;
 using Superpower.Parsers;
 
 
-namespace Prowl.Graphite;
+namespace Prowl.Graphite.Compiler.Parser;
 
 
 public static class ParsedProperty

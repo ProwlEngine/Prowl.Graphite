@@ -9,7 +9,7 @@ using Superpower.Parsers;
 using Superpower.Model;
 
 
-namespace Prowl.Graphite;
+namespace Prowl.Graphite.Compiler.Parser;
 
 
 public static class ParserUtility

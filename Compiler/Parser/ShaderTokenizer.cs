@@ -4,7 +4,7 @@ using Superpower.Model;
 using Superpower.Tokenizers;
 
 
-namespace Prowl.Graphite;
+namespace Prowl.Graphite.Compiler.Parser;
 
 
 public static class ShaderTokenizer

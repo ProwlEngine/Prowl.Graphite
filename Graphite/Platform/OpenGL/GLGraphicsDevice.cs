@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-
-using Prowl.Vector;
 
 using Silk.NET.Core.Contexts;
 using Silk.NET.OpenGL;

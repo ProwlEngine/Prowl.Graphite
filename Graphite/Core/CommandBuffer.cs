@@ -1,7 +1,6 @@
 using System;
 
 using Prowl.Vector;
-using Prowl.Vector.Geometry;
 
 
 namespace Prowl.Graphite;

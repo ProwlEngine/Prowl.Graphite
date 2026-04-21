@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 
 using Superpower;
-using Superpower.Model;
 using Superpower.Parsers;
 
 

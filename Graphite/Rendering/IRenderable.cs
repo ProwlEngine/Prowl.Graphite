@@ -1,7 +1,3 @@
-using System;
-
-using Prowl.Vector;
-using Prowl.Vector.Spatial;
 using Prowl.Vector.Geometry;
 
 

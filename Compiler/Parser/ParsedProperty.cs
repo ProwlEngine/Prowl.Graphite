@@ -3,7 +3,6 @@ using System;
 using Prowl.Vector;
 
 using Superpower;
-using Superpower.Model;
 using Superpower.Parsers;
 
 

@@ -1,7 +1,5 @@
 using Silk.NET.OpenGL;
 
-using Prowl.Vector;
-
 
 namespace Prowl.Graphite.OpenGL;
 

@@ -1,11 +1,5 @@
 using Silk.NET.OpenGL;
 
-using Prowl.Vector;
-using System;
-using System.Threading;
-
-using System.Linq;
-
 
 namespace Prowl.Graphite.OpenGL;
 

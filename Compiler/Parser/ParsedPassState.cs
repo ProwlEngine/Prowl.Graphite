@@ -1,4 +1,10 @@
 using System;
+using System.Collections.Generic;
+
+using Superpower;
+using Superpower.Model;
+using Superpower.Parsers;
+
 
 namespace Prowl.Graphite;
 
@@ -96,24 +102,6 @@ public class ParsedPassState
     }
 
 
-    public ParsedPassState ApplySeveral(ParsedPassState[] others)
-        => Apply(FromSeveral(others));
-
-
-    public static ParsedPassState FromSeveral(ParsedPassState[] others)
-    {
-        if (others.Length == 0)
-            return new();
-
-        ParsedPassState value = others[0];
-
-        for (int i = 1; i < others.Length; i++)
-            value = value.Apply(others[i]);
-
-        return value;
-    }
-
-
     public ShaderPassState ToShaderPassState()
     {
         ShaderPassState @default = ShaderPassState.Default;
@@ -155,4 +143,174 @@ public class ParsedPassState
             WriteMask = WriteMask ?? @default.WriteMask,
         };
     }
+
+
+    static ParsedPassState FromSeveral(ParsedPassState[] others)
+    {
+        if (others.Length == 0)
+            return new();
+
+        ParsedPassState value = others[0];
+
+        for (int i = 1; i < others.Length; i++)
+            value = value.Apply(others[i]);
+
+        return value;
+    }
+
+
+    static Dictionary<string, bool> OnStateMap = new()
+    {
+        { "On", true },
+        { "Off", false }
+    };
+
+
+    static Dictionary<string, CullFace> CullFaceMap = new()
+    {
+        { "Back", Graphite.CullFace.Back },
+        { "Front", Graphite.CullFace.Front },
+        { "Off", 0 }
+    };
+
+
+    static ColorWriteMask ParseMask(Token<ShaderToken> maskToken)
+    {
+        string tokenString = maskToken.ToStringValue();
+
+        ColorWriteMask result = 0;
+
+        foreach (char c in tokenString)
+        {
+            result |= c switch
+            {
+                'R' => ColorWriteMask.R,
+                'G' => ColorWriteMask.G,
+                'B' => ColorWriteMask.B,
+                'A' => ColorWriteMask.A,
+                _ => throw new ParseException($"Invalid channel {c}. Expected any of [R, G, B, A]", maskToken.Position)
+            };
+        }
+
+        return result;
+    }
+
+
+    static readonly Dictionary<string, TokenListParser<ShaderToken, ParsedPassState>> StencilStateCommands = new()
+    {
+        ["Ref"] =
+            from stencilref in ParserUtility.Integer
+            select new ParsedPassState() { StencilBackRef = stencilref, StencilFrontRef = stencilref },
+
+        ["ReadMask"] = from readmask in ParserUtility.Integer
+                       select new ParsedPassState() { StencilBackReadMask = (uint)readmask, StencilFrontReadMask = (uint)readmask },
+        ["WriteMask"] = from writemask in ParserUtility.Integer
+                        select new ParsedPassState() { StencilBackWriteMask = (uint)writemask, StencilFrontWriteMask = (uint)writemask },
+
+        ["Comp"] = from v in ParserUtility.Keywords<StencilFunc>()
+                   select new ParsedPassState() { StencilBackFunc = v, StencilFrontFunc = v, },
+        ["CompBack"] = from v in ParserUtility.Keywords<StencilFunc>()
+                       select new ParsedPassState() { StencilBackFunc = v },
+        ["CompFront"] = from v in ParserUtility.Keywords<StencilFunc>()
+                        select new ParsedPassState() { StencilFrontFunc = v },
+
+        ["Pass"] = from v in ParserUtility.Keywords<StencilOp>()
+                   select new ParsedPassState() { StencilBackPassOp = v, StencilFrontPassOp = v },
+        ["PassBack"] = from v in ParserUtility.Keywords<StencilOp>()
+                       select new ParsedPassState() { StencilBackPassOp = v },
+        ["PassFront"] = from v in ParserUtility.Keywords<StencilOp>()
+                        select new ParsedPassState() { StencilFrontPassOp = v },
+
+        ["Fail"] = from v in ParserUtility.Keywords<StencilOp>()
+                   select new ParsedPassState() { StencilBackFailOp = v, StencilFrontFailOp = v },
+        ["FailBack"] = from v in ParserUtility.Keywords<StencilOp>()
+                       select new ParsedPassState() { StencilBackFailOp = v },
+        ["FailFront"] = from v in ParserUtility.Keywords<StencilOp>()
+                        select new ParsedPassState() { StencilFrontFailOp = v },
+
+        ["ZFail"] = from v in ParserUtility.Keywords<StencilOp>()
+                    select new ParsedPassState() { StencilBackDepthFailOp = v, StencilFrontDepthFailOp = v },
+        ["ZFailBack"] = from v in ParserUtility.Keywords<StencilOp>()
+                        select new ParsedPassState() { StencilBackDepthFailOp = v },
+        ["ZFailFront"] = from v in ParserUtility.Keywords<StencilOp>()
+                         select new ParsedPassState() { StencilFrontDepthFailOp = v },
+    };
+
+
+    static readonly Dictionary<string, TokenListParser<ShaderToken, ParsedPassState>> RenderStateCommands = new()
+    {
+        ["AlphaToMask"] =
+            from mask in ParserUtility.Keywords(OnStateMap)
+            select new ParsedPassState() { AlphaToMask = mask },
+
+        ["BlendOp"] =
+            from blendop in ParserUtility.Keywords<BlendEquation>()
+            select new ParsedPassState() { BlendEquationRgb = blendop, BlendEquationAlpha = blendop },
+
+        ["Cull"] =
+            from cull in ParserUtility.Keywords(CullFaceMap)
+            select new ParsedPassState() { CullFace = cull },
+
+        ["ZClip"] =
+            from zclip in ParserUtility.Keywords(OnStateMap)
+            select new ParsedPassState() { EnableDepthClamp = !zclip },
+
+        ["ZTest"] =
+            from ztest in ParserUtility.Keywords<DepthFunc>()
+            select new ParsedPassState() { DepthFunc = ztest },
+
+        ["ZWrite"] =
+            from zwrite in ParserUtility.Keywords(OnStateMap)
+            select new ParsedPassState() { DepthWriteMask = zwrite },
+
+        ["ColorMask"] =
+            from mask in Token.EqualTo(ShaderToken.Identifier)
+            select new ParsedPassState() { WriteMask = ParseMask(mask) },
+
+        ["Offset"] =
+            from factor in ParserUtility.Float
+            from units in ParserUtility.Float
+            select new ParsedPassState()
+            {
+                EnablePolygonOffsetFill = true,
+                PolygonOffsetFactor = factor,
+                PolygonOffsetUnits = units
+            },
+
+        ["Blend"] =
+            from src in ParserUtility.Keywords<BlendFactor>()
+            from dst in ParserUtility.Keywords<BlendFactor>()
+            select new ParsedPassState()
+            {
+                BlendSrcRgb = src,
+                BlendSrcAlpha = src,
+                BlendDstRgb = dst,
+                BlendDstAlpha = dst
+            },
+
+        ["BlendRGB"] =
+            from srcRgb in ParserUtility.Keywords<BlendFactor>()
+            from dstRgb in ParserUtility.Keywords<BlendFactor>()
+            select new ParsedPassState() { BlendSrcRgb = srcRgb, BlendDstRgb = dstRgb },
+
+        ["BlendAlpha"] =
+            from srcA in ParserUtility.Keywords<BlendFactor>()
+            from dstA in ParserUtility.Keywords<BlendFactor>()
+            select new ParsedPassState() { BlendSrcAlpha = srcA, BlendDstAlpha = dstA },
+
+        ["Stencil"] =
+            from _open in Token.EqualTo(ShaderToken.OpenBrace)
+            from stencilStates in ParserUtility.MatchCommand(StencilStateCommands!).Many()
+            from _close in Token.EqualTo(ShaderToken.CloseBrace)
+            select FromSeveral(stencilStates)
+    };
+
+
+    static TokenListParser<ShaderToken, ParsedPassState> PassStateParser =
+        from passStates in ParserUtility.MatchCommand(RenderStateCommands).Many()
+        select FromSeveral(passStates);
+
+
+    public static TokenListParser<ShaderToken, ParsedPassState> Parse() =>
+        PassStateParser;
 }

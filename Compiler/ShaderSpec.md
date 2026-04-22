@@ -1,7 +1,8 @@
-# Prowl Graphite Shader Specification
+# ShaderDef Shader Markup Specification
 
-Prowl Graphite uses a ShaderLab-inspired declarative shader format. Shader files pair a structured
-render-state description with one or more HLSL program blocks.
+Graphite uses a ShaderLab-inspired declarative render state markup language known as ShaderDef
+If that was a mouthful, it is a text description of how your CPU should set up your GPU to draw a shader.
+It uses Slang shaders in conjunction with a custom ShaderLab-adjacent syntax to describe GPU render state, shader variants, and the programs to use.
 
 ---
 
@@ -9,14 +10,13 @@ render-state description with one or more HLSL program blocks.
 
 - [File Structure](#file-structure)
 - [Properties Block](#properties-block)
-- [Global HLSL Include](#global-hlsl-include)
 - [Pass Block](#pass-block)
   - [Name](#name)
   - [Tags](#tags)
   - [Render State Commands](#render-state-commands)
   - [Stencil Block](#stencil-block)
-  - [HLSL Program Block](#hlsl-program-block)
-    - [Pragmas](#pragmas)
+  - [ShaderSource Block](#shadersource-block)
+    - [Entrypoints](#entrypoints)
 - [Fallback](#fallback)
 - [Full Example](#full-example)
 
@@ -28,10 +28,6 @@ render-state description with one or more HLSL program blocks.
 Shader "ShaderName"
 {
     Properties { ... }      // optional
-
-    HLSLINCLUDE
-        // HLSL code shared across all passes
-    ENDHLSL                 // optional
 
     Pass [index]            // one or more
     {
@@ -45,8 +41,7 @@ Shader "ShaderName"
 | Element          | Required | Notes                                              |
 |------------------|----------|----------------------------------------------------|
 | `Shader "Name"`  | Yes      | Quoted display name for the shader                 |
-| `Properties`     | No       | Exposes material parameters to the engine          |
-| `HLSLINCLUDE`    | No       | Code prepended to every pass in this shader        |
+| `Properties`     | No       | Exposes default material parameters to the library |
 | `Pass`           | Yes (≥1) | One block per rendering pass                       |
 | `Fallback`       | Yes      | Name of a fallback shader if this one fails        |
 
@@ -54,7 +49,7 @@ Shader "ShaderName"
 
 ## Properties Block
 
-The `Properties` block declares named parameters that can be set on a material at runtime.
+The `Properties` block declares named default parameters that can be set on a material at runtime.
 
 ```
 Properties
@@ -97,21 +92,6 @@ Properties
 
 ---
 
-## Global HLSL Include
-
-An `HLSLINCLUDE`...`ENDHLSL` block placed at the shader scope is prepended to the HLSL code of
-every pass in the shader. Use it for shared utility functions, common structs, and global uniforms.
-
-```
-HLSLINCLUDE
-    #include "Common.hlsl"
-
-    float4 _GlobalTint;
-ENDHLSL
-```
-
----
-
 ## Pass Block
 
 ```
@@ -128,9 +108,10 @@ Pass [index]
 
     Stencil { ... }         // optional
 
-    HLSLPROGRAM
+    ShaderSource "SourceFile"
+    {
         ...
-    ENDHLSL
+    }
 }
 ```
 
@@ -150,14 +131,14 @@ Assigns a human-readable name to the pass. Used for pass lookup and debugging.
 Tags { "LightMode" = "ForwardBase"  "Queue" = "Transparent" }
 ```
 
-Arbitrary key-value string pairs associated with the pass. Tags are consumed by the engine or
+Arbitrary key-value string pairs associated with the pass. Tags are consumed by the library or
 render pipeline; the shader system stores them but does not interpret them.
 
 ---
 
 ## Render State Commands
 
-All render state commands are optional. Unspecified fields fall back to the engine defaults listed
+All render state commands are optional. Unspecified fields fall back to the library defaults listed
 below.
 
 ### Culling
@@ -274,7 +255,7 @@ Specifying any `Blend` command implicitly enables blending for the pass.
 | Alpha blending          | `Blend SrcAlpha OneMinusSrcAlpha`     |
 | Additive blending       | `Blend One One`                       |
 | Premultiplied alpha     | `Blend One OneMinusSrcAlpha`          |
-| Multiply               | `Blend DstColor Zero`                 |
+| Multiply                | `Blend DstColor Zero`                 |
 
 ---
 
@@ -428,28 +409,39 @@ Used by `Pass`/`PassFront`/`PassBack`, `Fail`/`FailFront`/`FailBack`, and
 
 ---
 
-## HLSL Program Block
+## ShaderSource Block
 
-Each pass must contain exactly one `HLSLPROGRAM`...`ENDHLSL` block with valid HLSL source code.
+Each pass must contain exactly one `ShaderSource` block, which identifies the source `.slang` file to use
+as the shader for the pass. This is to allow re-use of logic between multiple `.slang` files, with different
+entrypoints contained in the same module being able to be used across different `Pass` blocks
+and `.shaderdef` definitions.
 
 ```
-HLSLPROGRAM
-    #pragma vertex   VertexMain
-    #pragma fragment FragmentMain
-
-    // ... HLSL source code ...
-ENDHLSL
+ShaderSource "VertexShader.slang"
+{
+    Vertex "vertexEntrypoint"
+    Fragment "fragmentEntrypoint"
+}
 ```
 
-### Pragmas
+| Element                   | Required | Notes                                                |
+|---------------------------|----------|------------------------------------------------------|
+| `ShaderSource "Filename"` | Yes      | Quoted source file to load                           |
+| `Vertex "Entrypoint"`     | Yes      | The module entrypoint to use for the Vertex stage    |
+| `Fragment "EntryPoint"`   | Yes      | The module entrypoint to use for the Fragment stage  |
 
-Pragmas are parsed from within the HLSL block before compilation.
+### Entrypoints
 
-| Pragma                         | Description                                                         |
-|--------------------------------|---------------------------------------------------------------------|
-| `#pragma vertex <name>`        | Specifies the HLSL function to use as the vertex shader entry point |
-| `#pragma fragment <name>`      | Specifies the HLSL function to use as the fragment shader entry point |
-| `#pragma multi_compile A B ...`| Defines a keyword set; one variant is compiled per keyword          |
+Entrypoint commands describe what entry point to use for a shader stage from within the `ShaderSource` block.
+
+| Command                        | Description                                                       |
+|--------------------------------|-------------------------------------------------------------------|
+| `Vertex "Name"`                | The Slang module function to use for the vertex shader stage      |
+| `Fragment "Name"`              | The Slang module function to use for the fragment shader stage    |
+| `Mesh "Name"`                  | The Slang module function to use for the mesh shader stage        |
+| `Task "Name"`                  | The Slang module function to use for the task shader stage        |
+| `Geometry "Name"`              | The Slang module function to use for the geometry shader stage    |
+| `Tesselation "Name"`           | The Slang module function to use for the tesselation shader stage |
 
 ---
 
@@ -460,7 +452,7 @@ Fallback "FallbackShaderName"
 ```
 
 Specifies the name of an alternative shader to use when this shader cannot run on the current
-hardware or render pipeline. The engine resolves the fallback by name.
+hardware or render pipeline. The library resolves the fallback by name.
 
 ---
 
@@ -478,11 +470,6 @@ Shader "Example/PBR"
         _NormalMap("Normal Map", Texture2D) = "" {}
     }
 
-    HLSLINCLUDE
-        #include "Common.hlsl"
-        #include "Lighting.hlsl"
-    ENDHLSL
-
     Pass 0
     {
         Name "ForwardLit"
@@ -493,42 +480,11 @@ Shader "Example/PBR"
         ZWrite On
         Blend SrcAlpha OneMinusSrcAlpha
 
-        HLSLPROGRAM
-            #pragma vertex   vert
-            #pragma fragment frag
-            #pragma multi_compile SHADOWS_ON SHADOWS_OFF
-
-            struct Appdata
-            {
-                float3 position : POSITION;
-                float3 normal   : NORMAL;
-                float2 uv       : UV0;
-            };
-
-            struct V2F
-            {
-                float4 clipPos : POSITION;
-                float3 normal  : NORMAL;
-                float2 uv      : UV0;
-            };
-
-            float4 _Albedo;
-            Texture2D<float4> _AlbedoMap;
-
-            V2F vert(Appdata i)
-            {
-                V2F o;
-                o.clipPos = TransformWorldToClipSpace(i.position);
-                o.normal  = i.normal;
-                o.uv      = i.uv;
-                return o;
-            }
-
-            float4 frag(V2F i)
-            {
-                return _AlbedoMap.Sample(i.uv) * _Albedo;
-            }
-        ENDHLSL
+        ShaderSource "PBR.slang"
+        {
+            Vertex "PBRVertex"
+            Fragment "PBRFragment"
+        }
     }
 
     Pass 1
@@ -541,22 +497,11 @@ Shader "Example/PBR"
         ZWrite On
         ColorMask R
 
-        HLSLPROGRAM
-            #pragma vertex   vert
-            #pragma fragment frag
-
-            struct Appdata { float3 position : POSITION; };
-            struct V2F     { float4 clipPos  : POSITION; };
-
-            V2F vert(Appdata i)
-            {
-                V2F o;
-                o.clipPos = TransformWorldToClipSpace(i.position);
-                return o;
-            }
-
-            float4 frag(V2F i) { return float4(i.clipPos.z, 0, 0, 1); }
-        ENDHLSL
+        ShaderSource "PBR.slang"
+        {
+            Vertex "PBRShadowVertex"
+            Fragment "PBRShadowFragment"
+        }
     }
 
     Fallback "Hidden/InternalError"

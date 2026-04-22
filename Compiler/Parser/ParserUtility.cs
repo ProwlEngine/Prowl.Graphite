@@ -15,11 +15,11 @@ namespace Prowl.Graphite.Compiler.Parser;
 public static class ParserUtility
 {
     // Shorthand for a token-string comparison
-    public static TokenListParser<ShaderToken, Token<ShaderToken>> Keyword(string expected, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    public static TokenListParser<ShaderToken, Token<ShaderToken>> Keyword(string expected)
     {
         return Token.EqualTo(ShaderToken.Identifier)
             .Where(t =>
-                t.ToStringValue().Equals(expected, comparison));
+                t.Span.EqualsValueIgnoreCase(expected));
     }
 
 
@@ -27,7 +27,7 @@ public static class ParserUtility
     public static TokenListParser<ShaderToken, T> Keywords<T>(Dictionary<string, T> values) =>
         Token.EqualTo(ShaderToken.Identifier).Select(token =>
             {
-                var value = token.ToStringValue();
+                string value = token.ToStringValue();
 
                 if (values.TryGetValue(value, out T? result))
                     return result;
@@ -40,7 +40,7 @@ public static class ParserUtility
     public static TokenListParser<ShaderToken, T> Keywords<T>() where T : struct, Enum =>
         Token.EqualTo(ShaderToken.Identifier).Select(token =>
             {
-                var value = token.ToStringValue();
+                string value = token.ToStringValue();
 
                 if (Enum.TryParse(value, out T result))
                     return result;
@@ -105,7 +105,7 @@ public static class ParserUtility
         from id in Token.EqualTo(ShaderToken.Identifier)
             .Select(x =>
             {
-                var value = x.ToStringValue();
+                string value = x.ToStringValue();
 
                 if (!commandMap.ContainsKey(value))
                     throw Exceptions.ExpectedAny(commandMap.Keys, value, x.Position);

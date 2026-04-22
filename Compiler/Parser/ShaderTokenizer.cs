@@ -48,7 +48,7 @@ public static class ShaderTokenizer
             // String literal
             .Match(Span.Regex("\".*?\""), ShaderToken.String)
 
-            .Match(Span.EqualTo("ShaderSource"), ShaderToken.ShaderSource)
+            .Match(Span.EqualToIgnoreCase("ShaderSource"), ShaderToken.ShaderSource)
             .Match(Identifier.CStyle, ShaderToken.Identifier)
 
             // Numbers

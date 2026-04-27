@@ -1,0 +1,42 @@
+Shader "Default/Grass"
+
+Properties
+{
+    _MainTex ("Grass Texture", Texture2D) = "white"
+    _AlphaCutoff ("Alpha Cutoff", Float) = 0.5
+    _WindStrength ("Wind Strength", Float) = 0.3
+    _WindSpeed ("Wind Speed", Float) = 1.5
+    _Billboard ("Billboard", Float) = 1.0
+    _AlignToNormal ("Align To Normal", Float) = 0.0
+    _GrassDistance ("Grass Max Distance", Float) = 150.0
+    _GrassFadeStart ("Grass Fade Start", Float) = 90.0
+}
+
+Pass 0
+{
+    Name "Grass"
+    Tags { "RenderOrder" = "Opaque" }
+    Cull Off
+    ZWrite On
+
+    ShaderSource "Grass.slang"
+    {
+        Vertex "GrassVS"
+        Fragment "GrassFS"
+    }
+}
+
+Pass 1
+{
+    Name "DepthNormals"
+    Tags { "LightMode" = "DepthNormals" }
+    Cull Off
+
+    ShaderSource "Grass.slang"
+    {
+        Vertex "GrassDepthNormalsVS"
+        Fragment "GrassDepthNormalsFS"
+    }
+}
+
+Fallback "Default/Invalid"

@@ -1,0 +1,86 @@
+Shader "Default/Standard"
+{
+    Properties
+    {
+        _MainTex ("Albedo", Texture2D) = "grid"
+        _MainColor ("Tint", Color) = (1.0, 1.0, 1.0, 1.0)
+        _Tiling ("Tiling", Vector) = (1.0, 1.0, 0.0, 0.0)
+        _Offset ("Offset", Vector) = (0.0, 0.0, 0.0, 0.0)
+
+        _NormalTex ("Normal", Texture2D) = "normal"
+
+        _SurfaceTex ("Surface (AO, Roughness, Metallic)", Texture2D) = "surface"
+
+        _EmissionTex ("Emission", Texture2D) = "emission"
+        _EmissionIntensity ("Emission Intensity", Float) = 1.0
+
+        _AlphaCutoff ("Alpha Cutoff", Float) = 0.5
+
+        _ParallaxMap ("Height Map (G)", Texture2D) = "black"
+        _ParallaxHeight ("Height Scale", Float) = 0.0
+        _ParallaxSteps ("POM Steps", Integer) = 16
+
+        _TranslucencyMap ("Translucency (B) Occlusion (G)", Texture2D) = "white"
+        _TranslucencyStrength ("Translucency Strength", Float) = 0.0
+        _ScatteringPower ("Scattering Power", Float) = 0.0
+        _ScatteringDistortion ("Scattering Distortion", Float) = 0.5
+        _ScatteringScale ("Scattering Scale", Float) = 1.0
+
+        _Anisotropy ("Anisotropy", Float) = 0.5
+        _AnisoDirectionMap ("Anisotropy Direction (RG)", Texture2D) = "normal"
+    }
+
+    Pass 0
+    {
+        Name "ForwardLit"
+        Tags { "RenderOrder" = "Opaque" }
+        Cull Back
+
+        ShaderSource "Standard.slang"
+        {
+            Vertex "StandardVS"
+            Fragment "StandardFS"
+        }
+    }
+
+    Pass 1
+    {
+        Name "ForwardLitAniso"
+        Tags { "RenderOrder" = "Opaque" }
+        Cull Back
+
+        ShaderSource "Standard.slang"
+        {
+            Vertex "StandardVS"
+            Fragment "StandardAnisoFS"
+        }
+    }
+
+    Pass 2
+    {
+        Name "DepthNormals"
+        Tags { "LightMode" = "DepthNormals" }
+        Cull Back
+
+        ShaderSource "Standard.slang"
+        {
+            Vertex "StandardDepthNormalsVS"
+            Fragment "StandardDepthNormalsFS"
+        }
+    }
+
+    Pass 3
+    {
+        Name "ShadowCaster"
+        Tags { "LightMode" = "ShadowCaster" }
+        Cull Back
+
+        ShaderSource "Standard.slang"
+        {
+            Vertex "StandardShadowVS"
+            Fragment "StandardShadowFS"
+        }
+    }
+
+    Fallback "Default/Invalid"
+}

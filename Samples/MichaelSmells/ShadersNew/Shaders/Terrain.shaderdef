@@ -1,0 +1,81 @@
+Shader "Default/Terrain"
+
+Properties
+{
+    _Heightmap ("Heightmap", Texture2D) = "black"
+    _Splatmap ("Splatmap", Texture2D) = "white"
+
+    _Layer0 ("Layer 0 Albedo", Texture2D) = "white"
+    _Layer0Normal ("Layer 0 Normal", Texture2D) = "normal"
+    _Layer0Tiling ("Layer 0 Tiling", Float) = 10.0
+    _Layer0Roughness ("Layer 0 Roughness", Float) = 1.0
+    _Layer0Metallic ("Layer 0 Metallic", Float) = 0.0
+
+    _Layer1 ("Layer 1 Albedo", Texture2D) = "white"
+    _Layer1Normal ("Layer 1 Normal", Texture2D) = "normal"
+    _Layer1Tiling ("Layer 1 Tiling", Float) = 10.0
+    _Layer1Roughness ("Layer 1 Roughness", Float) = 1.0
+    _Layer1Metallic ("Layer 1 Metallic", Float) = 0.0
+
+    _Layer2 ("Layer 2 Albedo", Texture2D) = "white"
+    _Layer2Normal ("Layer 2 Normal", Texture2D) = "normal"
+    _Layer2Tiling ("Layer 2 Tiling", Float) = 10.0
+    _Layer2Roughness ("Layer 2 Roughness", Float) = 1.0
+    _Layer2Metallic ("Layer 2 Metallic", Float) = 0.0
+
+    _Layer3 ("Layer 3 Albedo", Texture2D) = "white"
+    _Layer3Normal ("Layer 3 Normal", Texture2D) = "normal"
+    _Layer3Tiling ("Layer 3 Tiling", Float) = 10.0
+    _Layer3Roughness ("Layer 3 Roughness", Float) = 1.0
+    _Layer3Metallic ("Layer 3 Metallic", Float) = 0.0
+
+    _TerrainSize ("Terrain Size", Float) = 1024.0
+    _TerrainHeight ("Terrain Height", Float) = 100.0
+
+    _BrushPosition ("Brush Position", Vector) = (0.0, 0.0, 0.0, 0.0)
+    _BrushRadius ("Brush Radius", Float) = 0.0
+    _BrushFalloff ("Brush Falloff", Float) = 0.5
+    _BrushVisible ("Brush Visible", Float) = 0.0
+}
+
+Pass 0
+{
+    Name "Terrain"
+    Tags { "RenderOrder" = "Opaque" }
+    Cull Back
+    ZWrite On
+
+    ShaderSource "Terrain.slang"
+    {
+        Vertex "TerrainVS"
+        Fragment "TerrainFS"
+    }
+}
+
+Pass 1
+{
+    Name "ShadowCaster"
+    Tags { "LightMode" = "ShadowCaster" }
+    Cull Back
+
+    ShaderSource "Terrain.slang"
+    {
+        Vertex "TerrainShadowVS"
+        Fragment "TerrainShadowFS"
+    }
+}
+
+Pass 2
+{
+    Name "DepthNormals"
+    Tags { "LightMode" = "DepthNormals" }
+    Cull Back
+
+    ShaderSource "Terrain.slang"
+    {
+        Vertex "TerrainDepthNormalsVS"
+        Fragment "TerrainDepthNormalsFS"
+    }
+}
+
+Fallback "Default/Invalid"

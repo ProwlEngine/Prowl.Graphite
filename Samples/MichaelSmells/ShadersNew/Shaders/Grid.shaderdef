@@ -1,0 +1,29 @@
+Shader "Default/Grid"
+
+Properties
+{
+    _GridColor ("Grid Color", Color) = (0.5, 0.5, 0.5, 0.3)
+    _PrimaryGridSize ("Primary Grid Size", Float) = 1.0
+    _SecondaryGridSize ("Secondary Grid Size", Float) = 0.25
+    _LineWidth ("Line Width", Float) = 0.02
+    _Falloff ("Falloff", Float) = 1.5
+    _MaxDist ("Max Distance", Float) = 500.0
+}
+
+Pass 0
+{
+    Name "Grid"
+    Tags { "RenderOrder" = "Transparent" }
+    Blend SrcAlpha OneMinusSrcAlpha
+    ZWrite Off
+    ZTest LessEqual
+    Cull Off
+
+    ShaderSource "Grid.slang"
+    {
+        Vertex "GridVS"
+        Fragment "GridFS"
+    }
+}
+
+Fallback "Default/Invalid"

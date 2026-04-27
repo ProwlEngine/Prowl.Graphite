@@ -1,0 +1,30 @@
+Shader "Default/CubemapSkybox"
+
+Properties
+{
+    _CubeRight ("Right (+X)", Texture2D) = "white"
+    _CubeLeft ("Left (-X)", Texture2D) = "white"
+    _CubeTop ("Top (+Y)", Texture2D) = "white"
+    _CubeBottom ("Bottom (-Y)", Texture2D) = "white"
+    _CubeFront ("Front (+Z)", Texture2D) = "white"
+    _CubeBack ("Back (-Z)", Texture2D) = "white"
+    _Tint ("Tint", Color) = (1.0, 1.0, 1.0, 1.0)
+    _Exposure ("Exposure", Float) = 1.0
+}
+
+Pass 0
+{
+    Name "CubemapSkybox"
+    Tags { "RenderOrder" = "Opaque" }
+    Cull Front
+    ZWrite Off
+    ZTest LessEqual
+
+    ShaderSource "CubemapSkybox.slang"
+    {
+        Vertex "CubemapSkyboxVS"
+        Fragment "CubemapSkyboxFS"
+    }
+}
+
+Fallback "Default/Invalid"

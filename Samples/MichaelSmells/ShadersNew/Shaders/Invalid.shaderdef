@@ -1,0 +1,20 @@
+Shader "Default/Invalid"
+
+Properties
+{
+}
+
+Pass 0
+{
+    Name "Invalid"
+    Tags { "RenderOrder" = "Opaque" }
+    Cull Off
+
+    ShaderSource "Invalid.slang"
+    {
+        Vertex "InvalidVS"
+        Fragment "InvalidFS"
+    }
+}
+
+Fallback "Default/Invalid"

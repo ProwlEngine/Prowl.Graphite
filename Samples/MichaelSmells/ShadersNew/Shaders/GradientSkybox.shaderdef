@@ -1,0 +1,25 @@
+Shader "Default/GradientSkybox"
+
+Properties
+{
+    _TopColor ("Top Color", Color) = (0.4, 0.6, 0.9, 1.0)
+    _BottomColor ("Bottom Color", Color) = (0.8, 0.8, 0.7, 1.0)
+    _Exponent ("Exponent", Float) = 1.0
+}
+
+Pass 0
+{
+    Name "GradientSkybox"
+    Tags { "RenderOrder" = "Opaque" }
+    Cull Front
+    ZWrite Off
+    ZTest LessEqual
+
+    ShaderSource "GradientSkybox.slang"
+    {
+        Vertex "GradientSkyboxVS"
+        Fragment "GradientSkyboxFS"
+    }
+}
+
+Fallback "Default/Invalid"

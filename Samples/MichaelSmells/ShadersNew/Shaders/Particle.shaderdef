@@ -1,0 +1,25 @@
+Shader "Default/Particle"
+
+Properties
+{
+    _MainTex ("Particle Texture", Texture2D) = "white"
+    _MainColor ("Tint", Color) = (1.0, 1.0, 1.0, 1.0)
+    _SoftParticlesFactor ("Soft Particles Factor", Float) = 1.0
+}
+
+Pass 0
+{
+    Name "Particle"
+    Tags { "RenderOrder" = "Transparent" }
+    Cull Off
+    ZWrite Off
+    Blend SrcAlpha OneMinusSrcAlpha
+
+    ShaderSource "Particle.slang"
+    {
+        Vertex "ParticleVS"
+        Fragment "ParticleFS"
+    }
+}
+
+Fallback "Default/Invalid"

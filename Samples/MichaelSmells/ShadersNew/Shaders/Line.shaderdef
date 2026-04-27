@@ -1,0 +1,24 @@
+Shader "Default/Line"
+
+Properties
+{
+    _MainTex ("Texture", Texture2D) = "white"
+    _StartColor ("Start Color", Color) = (1.0, 1.0, 1.0, 1.0)
+    _EndColor ("End Color", Color) = (1.0, 1.0, 1.0, 1.0)
+}
+
+Pass 0
+{
+    Name "Line"
+    Tags { "RenderOrder" = "Transparent" }
+    Cull Off
+    Blend SrcAlpha OneMinusSrcAlpha
+
+    ShaderSource "Line.slang"
+    {
+        Vertex "LineVS"
+        Fragment "LineFS"
+    }
+}
+
+Fallback "Default/Invalid"

@@ -1,0 +1,37 @@
+Shader "Default/Unlit"
+
+Properties
+{
+    _MainTex ("Texture", Texture2D) = "white"
+    _MainColor ("Tint", Color) = (1.0, 1.0, 1.0, 1.0)
+    _Tiling ("Tiling", Vector) = (1.0, 1.0, 0.0, 0.0)
+    _Offset ("Offset", Vector) = (0.0, 0.0, 0.0, 0.0)
+}
+
+Pass 0
+{
+    Name "Unlit"
+    Tags { "RenderOrder" = "Opaque" }
+    Cull Back
+
+    ShaderSource "Unlit.slang"
+    {
+        Vertex "UnlitVS"
+        Fragment "UnlitFS"
+    }
+}
+
+Pass 1
+{
+    Name "DepthNormals"
+    Tags { "LightMode" = "DepthNormals" }
+    Cull Back
+
+    ShaderSource "Unlit.slang"
+    {
+        Vertex "UnlitDepthNormalsVS"
+        Fragment "UnlitDepthNormalsFS"
+    }
+}
+
+Fallback "Default/Invalid"

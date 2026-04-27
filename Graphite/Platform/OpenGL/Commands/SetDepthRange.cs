@@ -4,7 +4,7 @@ using Silk.NET.OpenGL;
 namespace Prowl.Graphite.OpenGL;
 
 
-internal unsafe struct SetDepthRange : GLCommand
+internal struct SetDepthRange : GLCommand
 {
     public double Near;
     public double Far;

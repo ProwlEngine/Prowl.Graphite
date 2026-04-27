@@ -31,17 +31,17 @@ public class GLCommandBuffer : CommandBuffer
     }
 
 
-    public override void DrawMesh(Mesh mesh, int baseVertex = 0, int indexOffset = 0)
+    public override void Draw(VertexInput input, int baseVertex = 0, int indexOffset = 0)
     {
-        Commands.Enqueue(new DrawMesh() { Mesh = Unsafe.As<GLMesh>(mesh), BaseVertex = baseVertex, IndexOffset = indexOffset });
+        Commands.Enqueue(new Draw() { Input = Unsafe.As<GLVertexInput>(input), BaseVertex = baseVertex, IndexOffset = indexOffset });
     }
 
 
-    public override void DrawMeshIndirect(Mesh mesh, GraphicsBuffer indirectBuffer, int indirectArgsOffset = 0, int baseVertex = 0)
+    public override void DrawIndirect(VertexInput input, GraphicsBuffer indirectBuffer, int indirectArgsOffset = 0, int baseVertex = 0)
     {
-        Commands.Enqueue(new DrawMeshIndirect()
+        Commands.Enqueue(new DrawIndirect()
         {
-            Mesh = Unsafe.As<GLMesh>(mesh),
+            VertexInput = Unsafe.As<GLVertexInput>(input),
             IndirectBuffer = Unsafe.As<GLGraphicsBuffer>(indirectBuffer),
             IndirectArgsOffset = indirectArgsOffset,
             BaseVertex = baseVertex
@@ -49,11 +49,11 @@ public class GLCommandBuffer : CommandBuffer
     }
 
 
-    public override void DrawMeshInstanced(Mesh mesh, int instanceCount, int baseInstance = 0, int baseVertex = 0, int indexOffset = 0)
+    public override void DrawInstanced(VertexInput input, int instanceCount, int baseInstance = 0, int baseVertex = 0, int indexOffset = 0)
     {
-        Commands.Enqueue(new DrawMeshInstanced()
+        Commands.Enqueue(new DrawInstanced()
         {
-            Mesh = Unsafe.As<GLMesh>(mesh),
+            VertexInput = Unsafe.As<GLVertexInput>(input),
             InstanceCount = instanceCount,
             BaseInstance = baseInstance,
             BaseVertex = baseVertex,
@@ -68,12 +68,6 @@ public class GLCommandBuffer : CommandBuffer
     }
 
 
-    public override void SetScissorRects(Int4[] rects)
-    {
-        Commands.Enqueue(new SetScissorRect() { Enable = true, ScissorRects = rects });
-    }
-
-
     public override void ClearScissorRect()
     {
         Commands.Enqueue(new SetScissorRect() { Enable = false });
@@ -83,19 +77,6 @@ public class GLCommandBuffer : CommandBuffer
     public override void SetRenderTarget(RenderTarget? target = null)
     {
         Commands.Enqueue(new SetRenderTarget() { Target = Unsafe.As<GLRenderTarget>(target) });
-    }
-
-
-    /// <summary>
-    /// Sets the material and shader pass to be used in all subsequent draw calls until <see cref="SetMaterial"/> is called again.
-    /// </summary>
-    /// <param name="material"></param>
-    /// <param name="passIndex"></param>
-    public override void SetMaterial(Material material, int passIndex)
-    {
-        ArgumentNullException.ThrowIfNull(material, nameof(material));
-
-        SetShader(material.Shader, passIndex);
     }
 
 

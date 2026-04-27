@@ -147,22 +147,24 @@ internal class GLPipeline
     }
 
 
-    public void BindAttributes(GL gl, GLMesh mesh)
+    public void BindAttributes(GL gl, GLVertexInput input)
     {
+        input.UpdateInputs(gl);
+
         VertexInputDescriptor[] shaderInputs = _shaderData.VertexInputs;
 
-        if (mesh.BuffersBoundLegacy)
+        if (input.BuffersBoundLegacy)
         {
-            BindAttributesLegacy(gl, mesh);
+            BindAttributesLegacy(gl, input);
             return;
         }
 
-        VertexArray vertexArray = mesh.VertexArray;
-        VertexInputDescriptor[] meshInputs = mesh.InputLayout;
+        VertexArray vertexArray = input.VertexArray;
+        VertexInputDescriptor[] inputLayout = input.InputLayout;
 
-        for (uint i = 0; i < meshInputs.Length; i++)
+        for (uint i = 0; i < inputLayout.Length; i++)
         {
-            VertexInputDescriptor descriptor = meshInputs[i];
+            VertexInputDescriptor descriptor = inputLayout[i];
 
             uint attribIndex = 0;
             for (; attribIndex < shaderInputs.Length; attribIndex++)
@@ -182,12 +184,12 @@ internal class GLPipeline
     /// Slow and nasty but I couldn't care less about OpenGL 4.1 < as long as it runs.
     /// You can optimize this by drawing using instancing, which will be supported, but fuck-all for individual meshes.
     /// </summary>
-    private void BindAttributesLegacy(GL gl, GLMesh mesh)
+    private void BindAttributesLegacy(GL gl, GLVertexInput input)
     {
         VertexInputDescriptor[] shaderInputs = _shaderData.VertexInputs;
-        VertexInputDescriptor[] meshInputs = mesh.InputLayout;
-        VertexArray vertexArray = mesh.VertexArray;
-        GLGraphicsBuffer?[] inputBuffers = mesh.VertexInputBuffers;
+        VertexInputDescriptor[] vertexInputs = input.InputLayout;
+        VertexArray vertexArray = input.VertexArray;
+        GLGraphicsBuffer?[] inputBuffers = input.VertexInputBuffers;
 
         gl.BindVertexArray(vertexArray.Handle);
 
@@ -196,7 +198,7 @@ internal class GLPipeline
             if (inputBuffers[i] == null)
                 continue;
 
-            VertexInputDescriptor descriptor = meshInputs[i];
+            VertexInputDescriptor descriptor = vertexInputs[i];
 
             uint attribIndex = 0;
             for (; attribIndex < shaderInputs.Length; attribIndex++)

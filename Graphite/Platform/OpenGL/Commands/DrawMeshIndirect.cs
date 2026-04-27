@@ -4,9 +4,9 @@ using Silk.NET.OpenGL;
 namespace Prowl.Graphite.OpenGL;
 
 
-internal unsafe struct DrawMeshIndirect : GLCommand
+internal struct DrawIndirect : GLCommand
 {
-    public GLMesh Mesh;
+    public GLVertexInput VertexInput;
     public int BaseVertex;
     public GLGraphicsBuffer IndirectBuffer;
     public int IndirectArgsOffset;
@@ -18,13 +18,13 @@ internal unsafe struct DrawMeshIndirect : GLCommand
     {
         GLPipeline activePipeline = dispatcher.ActivePipeline;
 
-        activePipeline.BindAttributes(gl, Mesh);
+        activePipeline.BindAttributes(gl, VertexInput);
 
-        GLEnum indexType = Mesh.Has32BitIndices ? GLEnum.UnsignedInt : GLEnum.UnsignedShort;
+        GLEnum indexType = VertexInput.Indices32Bit ? GLEnum.UnsignedInt : GLEnum.UnsignedShort;
 
         IndirectBuffer.EnsureResource();
 
         gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, IndirectBuffer._buffer.Handle);
-        gl.DrawElementsIndirect(Mesh.GLTopology, indexType, IndirectArgsOffset);
+        gl.DrawElementsIndirect(VertexInput.GLTopology, indexType, IndirectArgsOffset);
     }
 }

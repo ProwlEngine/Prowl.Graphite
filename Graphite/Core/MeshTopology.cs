@@ -1,7 +1,7 @@
 namespace Prowl.Graphite;
 
 
-public enum MeshTopology
+public enum PrimitiveTopology
 {
     Triangles,
     Lines,

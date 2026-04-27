@@ -26,9 +26,9 @@ public abstract class Renderer
 
     public abstract void SubmitRenderable(IRenderable renderable);
 
-    public abstract void DrawMesh(Mesh mesh, Material material);
+    public abstract void Draw(VertexInput input, ParameterBlock material);
 
-    public abstract void ImmediateDrawMesh(Mesh mesh, Material material);
+    public abstract void ImmediateDraw(VertexInput input, ParameterBlock material);
 
     public abstract void Render();
 }

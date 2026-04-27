@@ -4,9 +4,9 @@ using Silk.NET.OpenGL;
 namespace Prowl.Graphite.OpenGL;
 
 
-internal unsafe struct DrawMesh : GLCommand
+internal struct Draw : GLCommand
 {
-    public GLMesh Mesh;
+    public GLVertexInput Input;
     public int BaseVertex;
     public int IndexOffset;
 
@@ -15,14 +15,14 @@ internal unsafe struct DrawMesh : GLCommand
     {
         GLPipeline activePipeline = dispatcher.ActivePipeline;
 
-        activePipeline.BindAttributes(gl, Mesh);
+        activePipeline.BindAttributes(gl, Input);
 
-        nint indexOffset = IndexOffset * (Mesh.Has32BitIndices ? 4 : 2);
-        GLEnum indexType = Mesh.Has32BitIndices ? GLEnum.UnsignedInt : GLEnum.UnsignedShort;
+        nint indexOffset = IndexOffset * (Input.Indices32Bit ? 4 : 2);
+        GLEnum indexType = Input.Indices32Bit ? GLEnum.UnsignedInt : GLEnum.UnsignedShort;
 
         gl.DrawElementsBaseVertex(
-            Mesh.GLTopology,
-            (uint)Mesh.IndexCount,
+            Input.GLTopology,
+            (uint)Input.IndexCount,
             indexType,
             indexOffset,
             BaseVertex);

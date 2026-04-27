@@ -7,28 +7,14 @@ using Prowl.Vector;
 namespace Prowl.Graphite;
 
 
-public abstract class Material
+public abstract class ParameterBlock
 {
-    public static Material Create(Shader shader, GraphicsDevice? device = null)
-    {
-        device ??= GraphicsDevice.Instance;
-
-        return GraphicsDevice.Backend switch
-        {
-            GraphicsBackend.OpenGL => new OpenGL.GLMaterial(shader)
-        };
-    }
-
-
-    public Shader Shader { get; }
-
     internal Dictionary<string, object> _properties;
 
 
     private void SetProperty(string name, object value)
     {
-        if (Array.Exists(Shader.Properties, x => x.Name == name))
-            _properties[name] = value;
+        _properties[name] = value;
     }
 
 

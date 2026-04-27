@@ -81,7 +81,7 @@ public struct StandardBRDF : IBRDF
         float NdotV = abs(dot(N, V));
         float LdotH = max(dot(L, H), 0.0);
 
-        float3 F0 = lerp(float3(0.04), surface.BaseColor, surface.Metallic);
+        float3 F0 = lerp(float3(0.04), surface.BaseColor.rgb, surface.Metallic);
 
         float  D = DistributionGGX(N, H, surface.Roughness);
         float  G = GeometrySmith(N, V, L, surface.Roughness);
